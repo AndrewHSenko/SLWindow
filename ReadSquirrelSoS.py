@@ -1,9 +1,10 @@
 import pyodbc
+from datetime import datetime
 
 menu_ids = {
         "#1" : 353,
-        "#2" : 597,
-        "#4" : 605,
+        "#2" : 379,
+        "#4" : 350,
         "#5" : 662,
         "#13" : 346,
         "#14" : 407,
@@ -67,37 +68,80 @@ menu_ids = {
         "Kid Tuna MD" : 968,
         "Kid Turk" : 961,
         "Kid Turk MD" : 962,
-        "Knish Chix" : ,
-        "Knish Kasha" : ,
-        "Knish Pastrami" : ,
-        "Knish Potato" : ,
+        "Knish Heated" : 4444,
+        "Knish 3 Pack" : 4443,
+        # Specific Knishes should be defunct #
+        "Knish Chix" : 4089,
+        "Knish Kasha" : 4090,
+        "Knish Pastrami" : 4435,
+        "Knish Potato" : 2129,
+        # End defunct knishes #
         "Zing Taters" : 905 
     }
 
-def get_check(check_id):
+checks = {}
+
+def get_check(start, end):
     query = f'''
-    SELECT ch.CheckNo, ct.Name, ci.MenuID, ci.Quantity
+    SELECT ch.CheckNo, ct.Name, ci.SaleTime, ci.MenuID, ci.Quantity
     FROM ((Squirrel.dbo.X_CheckHeader AS ch
     JOIN Squirrel.dbo.X_CheckTable AS ct ON ch.CheckID = ct.CheckID)
     JOIN Squirrel.dbo.X_CheckItem AS ci ON ch.CheckID = ci.CheckID)
-    WHERE ch.CheckID = {check_id}
+    WHERE ci.SaleTime BETWEEN '{start}' AND '{end}'
+    ORDER BY ci.SaleTime ASC
     '''
     return query
 
-def get_check_data(check_id):
+def get_check_data(start, end):
     SERVER = 'SQUIRREL-2012'
     DATABASE = 'Squirrel'
     connectionString = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={SERVER};DATABASE={DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;'
     conn = pyodbc.connect(connectionString)
     cursor = conn.cursor()
-    cursor.execute(get_check(check_id))
-    rows = cursor.fetchall()
-    check_data = {}
-    check_no = rows[0][0]
-    check_name = rows[0][1].strip()
-    qty = 0
-    for row in rows:
-        if row[2] in menu_ids.values(): # item is a SL item
-            qty += int(row[-1])
-    check_data[check_no] = [check_name, qty]
-    return check_data
+    start_time = datetime.strptime(start, '%Y%m%d%H%M%S')
+    end_time = datetime.strptime(end, '%Y%m%d%H%M%S')
+    cursor.execute(get_check(start_time, end_time))
+    rows = cursor.fetchall() # Could iterate using fetchone, but # of rows should never be too large
+    if rows == []:
+        return
+    for check in rows:
+        sale_time = check[2]
+        if sale_time not in checks: 
+            checks[sale_time] = {'check_no' : check[0], 'check_name' : check[1].strip(), 'menu_ids' : {check[3] : int(check[4])}}
+        else:
+            if check[3] in checks[sale_time]['menu_ids']:
+                checks[sale_time]['menu_ids'][check[3]] += check[4]
+            else:
+                checks[sale_time]['menu_ids'][check[3]] = check[4]
+    # Now checks is filled with every check entered between start and end #
+    checks_data = {}
+    for check, check_data in checks.items():
+        latke = 0 # Every 4 latkes are rung in as one item
+        knish = 0 # Every 4 knishes are rung in as one item
+        check_qty = 0
+        for menu_id, qty in check_data['menu_ids'].items():
+            if menu_id in menu_ids.values():
+                if menu_id == 1638: # Latke
+                    latke += qty
+                    continue
+                if menu_id == 4444: # Ht'd Knish
+                    knish += qty
+                    continue
+                if menu_id == 4443: # 3 Pk Knish
+                    knish += qty * 3
+                    continue
+                check_qty += qty
+        if latke:
+            while latke > 4:
+                latke -= 4
+                check_qty += 1
+            check_qty += 1
+        if knish:
+            while knish > 4:
+                knish -= 4
+                check_qty += 1
+            check_qty += 1
+        sale_time = check.strftime('%Y%m%d%H%M%S')
+        checks_data[sale_time] = [check_data['check_no'], check_data['check_name'], check_qty]
+    # checks_data is now filled with the qty for each check (including empty checks)
+    return checks_data
