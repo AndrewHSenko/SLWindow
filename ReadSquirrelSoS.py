@@ -141,6 +141,8 @@ def get_check_data(start, end):
                 knish -= 4
                 check_qty += 1
             check_qty += 1
+        if check_qty == 0: # Skip checks that don't have SL items
+            continue
         sale_time = check.strftime('%Y%m%d%H%M%S')
         checks_data[sale_time] = [check_data['check_no'], check_data['check_name'], check_qty]
     # checks_data is now filled with the qty for each check (including empty checks)

@@ -11,7 +11,8 @@ def do_it(start):
     sq_checks = squirrel.get_check_data(f'{date}{start_time}00', f'{date}{end_time}00')
     # sq_checks now has all checks within 5 minute window (including blank checks)
     # Keys: check_no, check_name, menu_ids #
-    qsr_checks = qsr.get_QSR_data(start_time, end_time) # Should return all QSR parsed tickets between start and end time parameters
+    for saletime in sq_checks:
+        qsr_check = qsr.get_QSR_data(saletime) # Should return all QSR parsed tickets between start and end time parameters
     
     '''
     for check_num in checks:

@@ -35,7 +35,7 @@ def check_valid_entry(raw_data, start_time, end_time):
     bump_time = ''.join(bump_time) # gets hour and min
     return True if int(bump_time) >= start_time and int(bump_time) < end_time else False
 
-def get_QSR_data(start_time, end_time):
+def get_QSR_data(saletime):
     sos = {}
     first_line = True # for BOM check (see Line ~8)
     # for line in open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SOS20250221.txt', 'r', encoding='utf-16le'): # SoS file is UTF-16 by default
