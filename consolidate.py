@@ -1,19 +1,18 @@
 import ReadQSRSoS as qsr
 import ReadSquirrelSoS as squirrel
-import time
 
 # Crontab should run this script every 5 minutes between 10:35am and 7:25pm
 def do_it(start):
     start_time = start # time.strftime('%Y%H%M') # Not using %I to make it easier to handle AM to PM hour change
     end_time = start_time + 5 if str(start_time)[-2:] != '60' else start_time + 40 # To fix xx:60 situations
-    date = '20250317'
+    date = '20250314'
     five_min_prod = 0
     sq_checks = squirrel.get_check_data(f'{date}{start_time}00', f'{date}{end_time}00')
     # sq_checks now has all checks within 5 minute window (including blank checks)
     # Keys: check_no, check_name, menu_ids #
     for saletime in sq_checks:
-        qsr_check = qsr.get_QSR_data(saletime) # Should return all QSR parsed tickets between start and end time parameters
-    
+        qsr_check = qsr.get_QSR_data(saletime, sq_checks[saletime][1]) # Should return all QSR parsed tickets between start and end time parameters
+        
     '''
     for check_num in checks:
         date_time = checks[check_num]['entered']
@@ -42,4 +41,4 @@ def do_it(start):
         window.write(top_border + '\n')
         window.write(entry + '\n')'''
 
-do_it(1105)
+do_it(1735)

@@ -2,6 +2,8 @@ import pyodbc
 from datetime import datetime
 
 menu_ids = {
+        "SOM March" : 9798,
+        # "SOM" : 9849
         "#1" : 353,
         "#2" : 379,
         "#4" : 350,
@@ -70,13 +72,13 @@ menu_ids = {
         "Kid Turk MD" : 962,
         "Knish Heated" : 4444,
         "Knish 3 Pack" : 4443,
-        # Specific Knishes should be defunct #
-        "Knish Chix" : 4089,
-        "Knish Kasha" : 4090,
-        "Knish Pastrami" : 4435,
-        "Knish Potato" : 2129,
-        # End defunct knishes #
         "Zing Taters" : 905 
+        # Specific Knishes should be defunct #
+        # "Knish Chix" : 4089,
+        # "Knish Kasha" : 4090,
+        # "Knish Pastrami" : 4435,
+        # "Knish Potato" : 2129,
+        # End defunct knishes #
     }
 
 checks = {}
