@@ -3,7 +3,7 @@ from datetime import datetime
 
 menu_ids = {
         "SOM March" : 9798,
-        # "SOM" : 9849
+        # "SOM April" : 9849
         "#1" : 353,
         "#2" : 379,
         "#4" : 350,

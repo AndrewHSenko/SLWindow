@@ -1,19 +1,44 @@
 import ReadQSRSoS as qsr
 import ReadSquirrelSoS as squirrel
-
-# Crontab should run this script every 5 minutes between 10:35am and 7:25pm
-def do_it(start):
-    start_time = start # time.strftime('%Y%H%M') # Not using %I to make it easier to handle AM to PM hour change
+# NEED TO ADD #
+    # Every 5 minutes, update Squirrel entries
+    # - For every Squirrel entry:
+    #   - QSR Start
+    #   - QSR Finish
+    #   - QSR PV
+    #   - QSR Anchor
+    # - When all 4 are filled, remove Squirrel entry
+    #   - Flag if any of the 4 are missing (PV might be absent for some tickets)
+    #       - Might check if PV items are present on check before this
+    #   - Add qty of check to 5 min interval based on Anchor Bump Time
+    #       - May do it based on joint Finish/PV time too
+    #       - Also record bump time / on-screen time for other stations
+    # - Flag if Squirrel check doesn't have corresponding QSR Check #
+check_data = {}
+start_time = 1320 # time.strftime('%Y%H%M') # Not using %I to make it easier to handle AM to PM hour change
+while start_time != 1915:
     end_time = start_time + 5 if str(start_time)[-2:] != '60' else start_time + 40 # To fix xx:60 situations
-    date = '20250314'
-    five_min_prod = 0
+    date = '20250314' # To be current date
     sq_checks = squirrel.get_check_data(f'{date}{start_time}00', f'{date}{end_time}00')
-    # sq_checks now has all checks within 5 minute window (including blank checks)
-    # Keys: check_no, check_name, menu_ids #
-    for saletime in sq_checks:
-        qsr_check = qsr.get_QSR_data(saletime, sq_checks[saletime][1]) # Should return all QSR parsed tickets between start and end time parameters
-        
-    '''
+    # sq_checks now has all checks within 5 minute window that have SL items
+    # sq_checks key: saletime
+    # sq_checks values: check_no, check_name, qty #
+    for sq_check in sq_checks:
+        if sq_check not in check_data: # Add check
+            check_data[sq_check] = {'Name': sq_checks[sq_check][1], 'START' : '', 'FINISH' : '', 'PLATESVILLE': '', 'ANCHOR' : ''}
+    for check in check_data:
+        qsr.get_QSR_data(check, check_data[check]['Name']) # Saletime & Name
+        # Parse for which station
+        # Update check_data station entries
+        # If check_data entry is filled, update quantities
+
+
+    start_time += 5
+    if str(start_time)[-2:] == '60':
+        start_time += 40
+
+
+'''
     for check_num in checks:
         date_time = checks[check_num]['entered']
         saletime = datetime.strptime(date_time, '%Y%m%d%H%M%S')
@@ -40,5 +65,3 @@ def do_it(start):
             window.write('-'*12 + '\n')
         window.write(top_border + '\n')
         window.write(entry + '\n')'''
-
-do_it(1735)
