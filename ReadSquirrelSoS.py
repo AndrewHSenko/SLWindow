@@ -2,8 +2,10 @@ import pyodbc
 from datetime import datetime
 
 menu_ids = {
-        "SOM March" : 9798,
-        # "SOM April" : 9849
+        "SOM MAY" : 9887,
+        # "SOM MARCH" : 9798,
+        # "SOM APRIL" : 9849
+        "CUSTOM" : 1146,
         "#1" : 353,
         "#2" : 379,
         "#4" : 350,
@@ -51,6 +53,7 @@ menu_ids = {
         "#616" : 677,
         "#623" : 688,
         "#1000" : 4856,
+        "Adult PB&J" : 3089,
         "Latke" : 1638,
         "KD" : 981,
         "KD MD" : 982,
@@ -58,6 +61,8 @@ menu_ids = {
         "KG MD" : 978,
         "Kid Brst" : 965,
         "Kid Brst MD" : 966,
+        "Kid CB" : 963,
+        "Kid CB MD" : 964,
         "Kid Chix" : 969,
         "Kid Chix MD" : 970,
         "Kid Ham" : 971,
