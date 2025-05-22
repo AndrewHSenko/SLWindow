@@ -1,3 +1,5 @@
+print(1350 % 100)
+exit()
 with open('window_data.txt', 'r') as tfile:
     checks = []
     for line in tfile.readlines():

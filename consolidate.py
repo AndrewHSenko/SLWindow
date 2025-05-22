@@ -1,62 +1,206 @@
 import ReadQSRSoS as qsr
 import ReadSquirrelSoS as squirrel
+import make_sheet
+import make_graph
 import time
-# NEED TO ADD #
-    # Every 5 minutes, update Squirrel entries
-    # - For every Squirrel entry:
-    #   - QSR Start
-    #   - QSR Finish
-    #   - QSR PV
-    #   - QSR Anchor
-    # - When all 4 are filled, remove Squirrel entry
-    #   - Flag if any of the 4 are missing (PV might be absent for some tickets)
-    #       - Might check if PV items are present on check before this
-    #   - Add qty of check to 5 min interval based on Anchor Bump Time
-    #       - May do it based on joint Finish/PV time too
-    #       - Also record bump time / on-screen time for other stations
-    # - Flag if Squirrel check doesn't have corresponding QSR Check #
-qsr_data = {}
-active_checks = {}
-bad_checks = {}
-window = {}
+
+# Finds bad checks (missing a station bump) #
+def find_bad_checks(active_checks):
+    bad_checks = {}
+    for check in active_checks: 
+        check_data = active_checks[check]
+        if not check_data['HOT START'] or not check_data['HOT FINISH'] or not check_data['PLATESVILLE'] or not check_data['ANCHOR']: # incomplete check
+            if check in bad_checks:
+                print('Check repeated:', check)
+                print(check)
+            else:
+                bad_checks[check] = check_data
+    # Based on Anchor bump (Will later integrate Finish/PV for shits and gigs)
+    with open('missing_bumps.txt', 'a') as badchecks_file:
+        badchecks_file.write('MISSING BUMPS\n')
+        badchecks_file.write('-------------\n')
+        for saletime in bad_checks:
+            check = bad_checks[saletime]
+            missing_bumps = []
+            if not check['HOT START']:
+                missing_bumps.append('Start')
+            if not check['HOT FINISH']:
+                missing_bumps.append('Finish')
+            if not check['PLATESVILLE']:
+                missing_bumps.append('Platesville')
+            if not check['ANCHOR']:
+                missing_bumps.append('Expo')
+            badchecks_file.write(f'{saletime[-6:-4]}:{saletime[-4:-2]}:{saletime[-2:]} ({check['Name']}): |')
+            for bump in missing_bumps:
+                badchecks_file.write(f' {bump} |')
+            badchecks_file.write('\n')
+    # Will add return statement with try/catch blocks #
+
+def create_raw_text(window):
+    sums = {}
+    ssum = 0
+    with open('raw_window_data.txt', 'a') as window_file: # For Window
+        window_file.write(f'Raw Data\n')
+        window_file.write('---------')
+        for intvl, data in window.items():
+            window_file.write(f'\n||| {intvl} |||\n')
+            # TO DO: Should add which menu items were ordered #
+            for d in data[:-1]:
+                saletime = d[0]
+                name = d[1]
+                qty = int(d[-1])
+                window_file.write(f'+ {saletime} ({name}): {qty}\n')
+            window_file.write(f'[ Total: {int(data[-1])} ]\n')
+            ssum += int(data[-1])
+            sums[intvl] = str(data[-1])
+    return (sums, ssum)
+
+def create_window_text(sums, ssum):
+    with open('window_summary.txt', 'a') as summary_file:
+        summary_file.write(f'Summary\n')
+        summary_file.write('-------\n')
+        intvl_sum, best, worst = 0, 0, 1000 # If we're making 1000+ sandwiches every 5 minutes, give us a medal
+        for intvl, sum in sums.items():
+            if intvl[-2:] == '05':
+                if intvl[1] == ':':
+                    summary_file.write(f'| {intvl[0]}:00 - {int(intvl[0]) + 1}:00 |\n')
+                else:
+                    head = int(intvl[:2])
+                    if head == 12:
+                        head -= 12
+                    summary_file.write(f'| {intvl[:2]}:00 - {head + 1}:00 |\n')
+            int_sum = int(float(sum)) 
+            summary_file.write(f'{intvl}: {int_sum}\n')
+            intvl_sum += int_sum
+            if int_sum > best:
+                best = int_sum
+            if int_sum < worst:
+                worst = int_sum
+            if intvl[-2:] == '00':
+                summary_file.write(f'* Total: {intvl_sum} *\n')
+                summary_file.write(f'* Best: {best} *\n')
+                summary_file.write(f'* Worst: {worst} *\n\n')
+                intvl_sum, best, worst = 0, 0, 1000
+        summary_file.write(f'TOTAL: {ssum}\n')
+
+def create_foh_entries_text(entered):
+    with open('FoH_entries.txt', 'a') as entry_file: # For FoH entries
+        qtys = {}
+        entry_file.write('FoH Entries\n')
+        entry_file.write('-----------')
+        for ivl, entry in entered.items():
+            sale_sum = 0
+            sum = 0
+            entry_file.write(f'\n||| {ivl} |||\n')
+            for vals in entry:
+                sum += int(vals[-1])
+                sale_sum += 1
+                entry_file.write(f'+ {vals[1]}: {vals[0]}\n')
+            entry_file.write(f'Checks: {sale_sum}\nItem Qty: {sum}\n')
+            qtys[ivl] = (sale_sum, sum)
+        entry_file.write(f'\nSUMMARY\n')
+        entry_file.write('-------\n')
+        for ivl, entry_qty in qtys.items():
+            entry_file.write(f'|{ivl}| TOTAL CHECKS: {entry_qty[0]} / TOTAL QTY: {entry_qty[1]}\n')
+
+def create_sheets(sums):
+    monthly_wb = True # Change to False
+    if time.strftime('%d') == '01':
+        monthly_wb = True
+    monthly_wb_name = f'{time.strftime('%b_%Y_Button_Data')}.xlsx'
+    daily_wb_name = f'{time.strftime('%m_%d_%Y')}.xlsx'
+    make_sheet.generate_daily_sheet(monthly_wb_name, sums, monthly_wb) # To add to monthly workbook
+    make_graph.make_daily_prod(monthly_wb_name, sums)
+    make_sheet.generate_daily_sheet(daily_wb_name, sums, True) # To add to daily workbook
+    make_graph.make_daily_prod(daily_wb_name, sums)
+    # Will add return statement with try/catch blocks #
+
 # To update window
-def add_to_window():
+def tabulate(active_checks):
+    window = {}
+    entered = {}
+    # Collect data #
     start_time = 1000
     while start_time != 1915:
         end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
-        date = '20250502' # To be current date
+        date = '20250510' # To be current date
         window_start, window_end = f'{date}{start_time}00', f'{date}{end_time}00'
-        intvl = window_start + ' - ' + window_end
+        easier_win_start = start_time if start_time < 1300 else start_time - 1200
+        easier_win_end = end_time if end_time < 1300 else end_time - 1200
+        intvl = str(easier_win_start)[:-2]+ ':' + str(easier_win_start)[-2:] + ' - ' + str(easier_win_end)[:-2] + ':' + str(easier_win_end)[-2:]
         window[intvl] = []
+        entered[intvl] = []
         for check in active_checks:
             anchor = active_checks[check]['ANCHOR']
             if not anchor:
                 print(active_checks[check]['Name'])
                 print(active_checks[check])
                 continue
-            if int(window_start) < int(anchor) < int(window_end):
-                window[intvl].append((check, active_checks[check]['Qty']))
+            if int(window_start) < int(check) < int(window_end): # FoH Entries
+                check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
+                entered[intvl].append([check_saletime, active_checks[check]['Name'], active_checks[check]['Qty']])
+            if int(window_start) < int(anchor) < int(window_end): # Anchor Bumps
+                check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
+                window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['Qty']))
         sum = 0
         for entry in window[intvl]:
-            sum += entry[1]
+            sum += entry[-1]
         window[intvl].append(sum)
         start_time += 5
         if str(start_time)[-2:] == '60':
             start_time += 40
-    with open('window_data.txt', 'a') as file:
-        sums = {}
-        ssum = 0
-        for intvl, data in window.items():
-            header = f'{intvl.split()[0][8:-2]} - {intvl.split()[2][8:-2]}'
-            file.write(f'||| {header} |||\n')
-            for d in data:
-                file.write(str(d) + '\n')
-            ssum += int(data[-1])
-            sums[header] = str(data[-1])
-        for head, sum in sums.items():    
-            file.write(head + ' : ' + sum + '\n')
-        file.write(f'TOTAL: {ssum}')
+    # Tabulate data #
+    raw_data = create_raw_text(window)
+    sums = raw_data[0]
+    ssum = raw_data[1]
+    create_window_text(sums, ssum)
+    create_foh_entries_text(entered)
+    create_sheets(sums)
 
+def find_production():
+    qsr_data = qsr.get_QSR_data()
+    active_checks = {}
+    # Collect data #
+    start = time.time()
+    start_time = 1000 # Not using %I to make it easier to handle AM to PM hour change
+    while start_time != 1915:
+        print('On:', start_time)
+        end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
+        date = '20250510' # To be current date
+        sq_checks = squirrel.get_check_data(f'{date}{start_time}00', f'{date}{end_time}00')
+        # sq_checks now has all checks within 5 minute window that have SL items
+        # sq_checks key: saletime
+        # sq_checks values: check_no, check_name, qty #
+        if sq_checks:
+            for sq_check in sq_checks:
+                if sq_check not in active_checks : # Add check from Squirrel to active_checks
+                    active_checks[sq_check] = {'Name': sq_checks[sq_check][1], 'Qty': sq_checks[sq_check][2], 'HOT START' : '', 'HOT FINISH' : '', 'PLATESVILLE': '', 'ANCHOR' : ''}
+        # Set up bump times in active_checks #
+        for sale_time in active_checks:
+            check_name = active_checks[sale_time]['Name']
+            st = sale_time
+            if not (sale_time, 'ANCHOR') in qsr_data:
+                st = qsr.find_entry(qsr_data, sale_time, check_name)
+            if (st, 'HOT START') in qsr_data:
+                active_checks[sale_time]['HOT START'] = qsr_data[(st, 'HOT START')]['bumped']
+            if (st, 'HOT FINISH') in qsr_data:
+                active_checks[sale_time]['HOT FINISH'] = qsr_data[(st, 'HOT FINISH')]['bumped']
+            if (st, 'PLATESVILLE') in qsr_data:
+                active_checks[sale_time]['PLATESVILLE'] = qsr_data[(st, 'PLATESVILLE')]['bumped']
+            if (st, 'ANCHOR') in qsr_data:
+                active_checks[sale_time]['ANCHOR'] = qsr_data[(st, 'ANCHOR')]['bumped']
+        start_time += 5
+        if str(start_time)[-2:] == '60':
+            start_time += 40
+    end = time.time()
+    print('Time taken:', end, '-', start, '=', end - start)
+    find_bad_checks(active_checks)
+    tabulate(active_checks)
+
+if __name__ == '__main__':
+    find_production()
+
+'''
 def clean_checks(curr_hour):
     delete_checks = []
     target_hr = int(curr_hour) - 2
@@ -67,60 +211,7 @@ def clean_checks(curr_hour):
     for check in delete_checks:
         del active_checks[check]
     return checks_delete
-
-qsr_data = qsr.get_QSR_data()
-start = time.time()
-amt_checks = 0
-start_time = 1000 # Not using %I to make it easier to handle AM to PM hour change
-while start_time != 1915:
-    stt = time.time()
-    print('On:', start_time)
-    end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
-    date = '20250502' # To be current date
-    sq_checks = squirrel.get_check_data(f'{date}{start_time}00', f'{date}{end_time}00')
-    # sq_checks now has all checks within 5 minute window that have SL items
-    # sq_checks key: saletime
-    # sq_checks values: check_no, check_name, qty #
-    if sq_checks:
-        for sq_check in sq_checks:
-            if sq_check not in active_checks : # Add check
-                active_checks[sq_check] = {'Name': sq_checks[sq_check][1], 'Qty': sq_checks[sq_check][2], 'HOT START' : '', 'HOT FINISH' : '', 'PLATESVILLE': '', 'ANCHOR' : ''}
-    for sale_time in active_checks:
-        check_name = active_checks[sale_time]['Name']
-        st = sale_time
-        if not (sale_time, 'ANCHOR') in qsr_data:
-            amt_checks += 1
-            st = qsr.find_entry(qsr_data, sale_time, check_name)
-        if (st, 'HOT START') in qsr_data:
-            active_checks[sale_time]['HOT START'] = qsr_data[(st, 'HOT START')]['bumped']
-        if (st, 'HOT FINISH') in qsr_data:
-            active_checks[sale_time]['HOT FINISH'] = qsr_data[(st, 'HOT FINISH')]['bumped']
-        if (st, 'PLATESVILLE') in qsr_data:
-            active_checks[sale_time]['PLATESVILLE'] = qsr_data[(st, 'PLATESVILLE')]['bumped']
-        if (st, 'ANCHOR') in qsr_data:
-            active_checks[sale_time]['ANCHOR'] = qsr_data[(st, 'ANCHOR')]['bumped']
-    start_time += 5
-    ett = time.time()
-    print('After QSR:', ett-stt)
-    if str(start_time)[-2:] == '60':
-        start_time += 40 #
-end = time.time()
-print('Active checks:', len(active_checks))
-print('Bad checks:', amt_checks)
-for check in active_checks:
-    check_data = active_checks[check]
-    if not check_data['HOT START'] or not check_data['HOT FINISH'] or not check_data['PLATESVILLE'] or not check_data['ANCHOR']: # incomplete check
-        if check in bad_checks:
-            print('Check repeated:', check)
-            print(check)
-        else:
-            bad_checks[check] = check_data
-# Based on Anchor bump (Will later integrate Finish/PV for shits and gigs)
-with open('badchecks.txt', 'a') as f:
-    for check in bad_checks:
-        f.write(check + ' | ' + str(bad_checks[check]) + '\n')
-print(end, '-', start, '=', end - start)
-add_to_window()
+'''
 
 '''
     for check_num in checks:
