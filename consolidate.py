@@ -5,6 +5,8 @@ import make_sheet
 import make_graph
 import time
 
+path = "G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%m_%d_%Y') + '/'
+
 # Finds bad checks (missing a station bump) #
 def find_bad_checks(active_checks):
     bad_checks = {}
@@ -17,7 +19,7 @@ def find_bad_checks(active_checks):
             else:
                 bad_checks[check] = check_data
     # Based on Anchor bump (Will later integrate Finish/PV for shits and gigs)
-    with open("G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%b_%Y_Button_Data') + '_missing_bumps.txt', 'a') as badchecks_file:
+    with open(path + time.strftime('%b_%d_%Y') + '_missing_bumps.txt', 'a') as badchecks_file:
         badchecks_file.write('MISSING BUMPS\n')
         badchecks_file.write('-------------\n')
         for saletime in bad_checks:
@@ -40,7 +42,7 @@ def find_bad_checks(active_checks):
 def create_raw_text(window):
     sums = {}
     ssum = 0
-    with open("G:/Window Data/" + time.strftime('%m_%Y') + '/' + 'raw_' + time.strftime('%b_%Y_Button_Data') + '_window_data.txt', 'a') as window_file: # For Window
+    with open(path + 'raw_' + time.strftime('%b_%d_%Y') + '_window_data.txt', 'a') as window_file: # For Window
         window_file.write(f'Raw Data\n')
         window_file.write('---------')
         for intvl, data in window.items():
@@ -57,7 +59,7 @@ def create_raw_text(window):
     return (sums, ssum)
 
 def create_window_text(sums, ssum):
-    with open("G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%m_%d_%Y') + '_Summary.txt', 'a') as summary_file:
+    with open(path + time.strftime('%m_%d_%Y') + '_Summary.txt', 'a') as summary_file:
         summary_file.write(f'Summary\n')
         summary_file.write('-------\n')
         intvl_sum, best, worst = 0, 0, 1000 # If we're making 1000+ sandwiches every 5 minutes, give us a medal
@@ -85,7 +87,7 @@ def create_window_text(sums, ssum):
         summary_file.write(f'TOTAL: {ssum}\n')
 
 def create_foh_entries_text(entered):
-    with open("G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%b_%Y_Button_Data') + '_FoH_entries.txt', 'a') as entry_file: # For FoH entries
+    with open(path + time.strftime('%b_%d_%Y') + '_FoH_entries.txt', 'a') as entry_file: # For FoH entries
         qtys = {}
         entry_file.write('FoH Entries\n')
         entry_file.write('-----------')
@@ -108,8 +110,8 @@ def create_sheets(sums):
     monthly_wb = True # Change to False
     if time.strftime('%d') == '01':
         monthly_wb = True
-    monthly_wb_name = f'{time.strftime('%b_%Y_Button_Data')}.xlsx'
-    daily_wb_name = f'{time.strftime('%m_%d_%Y')}.xlsx'
+    monthly_wb_name = f'{path}{time.strftime('%b_%Y_Button_Data')}.xlsx'
+    daily_wb_name = f'{path}{time.strftime('%m_%d_%Y')}.xlsx'
     make_sheet.generate_daily_sheet(monthly_wb_name, sums, monthly_wb) # To add to monthly workbook
     make_graph.make_daily_prod(monthly_wb_name, sums)
     make_sheet.generate_daily_sheet(daily_wb_name, sums, True) # To add to daily workbook
@@ -124,7 +126,7 @@ def tabulate(active_checks):
     start_time = 1000
     while start_time != 1915:
         end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
-        date = '20250510' # To be current date
+        date = time.strftime('%Y%m%d') #'20250510'
         window_start, window_end = f'{date}{start_time}00', f'{date}{end_time}00'
         easier_win_start = start_time if start_time < 1300 else start_time - 1200
         easier_win_end = end_time if end_time < 1300 else end_time - 1200
@@ -167,7 +169,7 @@ def find_production():
     while start_time != 1915:
         print('On:', start_time)
         end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
-        date = '20250510' # To be current date
+        date = time.strftime('%Y%m%d') #'20250510'
         sq_checks = squirrel.get_check_data(f'{date}{start_time}00', f'{date}{end_time}00')
         # sq_checks now has all checks within 5 minute window that have SL items
         # sq_checks key: saletime
@@ -201,7 +203,7 @@ def find_production():
 if __name__ == '__main__':
     if time.strftime('%d') == '01':
         directory_name = "G:/Window Data/" + time.strftime('%m_%Y')
-        # Create the directory
+        # Create the monthly directory
         try:
             mkdir(directory_name)
         except FileExistsError:
@@ -210,6 +212,16 @@ if __name__ == '__main__':
             print(f"Permission denied: Unable to create '{directory_name}'.")
         except Exception as e:
             print(f"An error occurred: {e}")
+    directory_name = "G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%m_%d_%Y')
+    # Create the daily directory
+    try:
+        mkdir(directory_name)
+    except FileExistsError:
+        print(f"Directory '{directory_name}' already exists.")
+    except PermissionError:
+        print(f"Permission denied: Unable to create '{directory_name}'.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
     find_production()
 
 '''

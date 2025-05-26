@@ -34,9 +34,10 @@ def generate_email(filename, recipients):
     msg['To'] = recipients
     msg.preamble = 'Not a MIME-readable recipient. That\'s ok!\n'
     # print('right before with open')
-    with open(filename[0], 'rb') as fp:
-        msg.add_attachment(fp.read(), maintype='text', subtype='plain', filename=header + ' Raw Data') # Change to pdf
-    with open(filename[1], 'rb') as fp:
+    path = "G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%m_%d_%Y') + '/'
+    with open(path + filename[0], 'rb') as fp:
+        msg.add_attachment(fp.read(), maintype='text', subtype='plain', filename=header + ' Summary') # Change to pdf
+    with open(path + filename[1], 'rb') as fp:
         msg.add_attachment(fp.read(), maintype='application', subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename=header + ' Spreadsheet and Graph.xlsx')
 #    with open(filename[1], 'rb') as fp: # For spreadsheet
 #        msg.add_attachment(fp.read(), maintype='
@@ -50,7 +51,7 @@ def send_email(): # Add try/except clauses
     server.starttls()
     server.login(sender, pwd)
     # print('login successful')
-    email_msg = generate_email([header + '.txt', header + '.xlsx'], receivers)
+    email_msg = generate_email([header + '_Summary.txt', header + '.xlsx'], receivers)
     # print('generate_email activated')
     server.send_message(email_msg)
     # print('email_msg sent')
