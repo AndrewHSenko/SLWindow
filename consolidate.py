@@ -1,5 +1,6 @@
 import ReadQSRSoS as qsr
 import ReadSquirrelSoS as squirrel
+from os import mkdir
 import make_sheet
 import make_graph
 import time
@@ -16,7 +17,7 @@ def find_bad_checks(active_checks):
             else:
                 bad_checks[check] = check_data
     # Based on Anchor bump (Will later integrate Finish/PV for shits and gigs)
-    with open('missing_bumps.txt', 'a') as badchecks_file:
+    with open("G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%b_%Y_Button_Data') + '_missing_bumps.txt', 'a') as badchecks_file:
         badchecks_file.write('MISSING BUMPS\n')
         badchecks_file.write('-------------\n')
         for saletime in bad_checks:
@@ -39,7 +40,7 @@ def find_bad_checks(active_checks):
 def create_raw_text(window):
     sums = {}
     ssum = 0
-    with open('raw_window_data.txt', 'a') as window_file: # For Window
+    with open("G:/Window Data/" + time.strftime('%m_%Y') + '/' + 'raw_' + time.strftime('%b_%Y_Button_Data') + '_window_data.txt', 'a') as window_file: # For Window
         window_file.write(f'Raw Data\n')
         window_file.write('---------')
         for intvl, data in window.items():
@@ -56,7 +57,7 @@ def create_raw_text(window):
     return (sums, ssum)
 
 def create_window_text(sums, ssum):
-    with open('window_summary.txt', 'a') as summary_file:
+    with open("G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%m_%d_%Y') + '_Summary.txt', 'a') as summary_file:
         summary_file.write(f'Summary\n')
         summary_file.write('-------\n')
         intvl_sum, best, worst = 0, 0, 1000 # If we're making 1000+ sandwiches every 5 minutes, give us a medal
@@ -84,7 +85,7 @@ def create_window_text(sums, ssum):
         summary_file.write(f'TOTAL: {ssum}\n')
 
 def create_foh_entries_text(entered):
-    with open('FoH_entries.txt', 'a') as entry_file: # For FoH entries
+    with open("G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%b_%Y_Button_Data') + '_FoH_entries.txt', 'a') as entry_file: # For FoH entries
         qtys = {}
         entry_file.write('FoH Entries\n')
         entry_file.write('-----------')
@@ -198,6 +199,17 @@ def find_production():
     tabulate(active_checks)
 
 if __name__ == '__main__':
+    if time.strftime('%d') == '01':
+        directory_name = "G:/Window Data/" + time.strftime('%m_%Y')
+        # Create the directory
+        try:
+            mkdir(directory_name)
+        except FileExistsError:
+            print(f"Directory '{directory_name}' already exists.")
+        except PermissionError:
+            print(f"Permission denied: Unable to create '{directory_name}'.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
     find_production()
 
 '''
