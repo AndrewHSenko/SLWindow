@@ -1,5 +1,9 @@
 import pyodbc
+import os
+from dotenv import load_dotenv
 from datetime import datetime
+
+load_dotenv()
 
 menu_ids = {
         "SOM MAY" : 9887,
@@ -100,9 +104,10 @@ def get_check(start, end):
     return query
 
 def get_check_data(start, end):
-    SERVER = 'SQUIRREL-2012'
-    DATABASE = 'Squirrel'
-    connectionString = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={SERVER};DATABASE={DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;'
+    SERVER = os.getenv('SERVER')
+    DATABASE = os.getenv('DB')
+    DRIVER = {os.getenv('DRIVER')}
+    connectionString = f'DRIVER={DRIVER};SERVER={SERVER};DATABASE={DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;'
     conn = pyodbc.connect(connectionString)
     cursor = conn.cursor()
     start_time = datetime.strptime(start, '%Y%m%d%H%M%S')
