@@ -3,11 +3,10 @@ from openpyxl.styles import Alignment, Font
 import time
 
 # Maybe add column for best production per hour?
-def create_sheet(workbook_name, data, date):
+def create_sheet(workbook_name, s_name, data):
     WORKBOOK = load_workbook(filename=workbook_name)
-    TODAY = date
-    WORKBOOK.create_sheet(TODAY)
-    SHEET = WORKBOOK[TODAY]
+    WORKBOOK.create_sheet(s_name)
+    SHEET = WORKBOOK[s_name]
     NUM_ROWS = 12
     NUM_COLS = 14
     SHEET.insert_rows(idx = 1, amount = NUM_ROWS)
@@ -73,11 +72,11 @@ def create_workbook(wb):
     workbook.active.title = 'Summary'
     workbook.save(filename=wb)
 
-def generate_daily_sheet(wb_name, data, new_wb):
+def generate_daily_sheet(wb_name, data, new_wb, sheet_name=time.strftime('%m_%d_%Y')):
     if new_wb:
         create_workbook(wb_name)
     just_prods = [int(float(data[d])) for d in data]
-    create_sheet(wb_name, just_prods, time.strftime('%m_%d_%Y'))
+    create_sheet(wb_name, sheet_name, just_prods)
 
 # Tester Code #
 #create_workbook()

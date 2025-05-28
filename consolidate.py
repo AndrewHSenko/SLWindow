@@ -5,7 +5,8 @@ import make_sheet
 import make_graph
 import time
 
-path = "G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%m_%d_%Y') + '/'
+dir_name = "G:/Window Data/" + time.strftime('%m_%Y')
+path = dir_name + '/' + time.strftime('%m_%d_%Y') + '/'
 
 # Finds bad checks (missing a station bump) #
 def find_bad_checks(active_checks):
@@ -19,7 +20,7 @@ def find_bad_checks(active_checks):
             else:
                 bad_checks[check] = check_data
     # Based on Anchor bump (Will later integrate Finish/PV for shits and gigs)
-    with open(path + time.strftime('%b_%d_%Y') + '_missing_bumps.txt', 'a') as badchecks_file:
+    with open(path + time.strftime('%b_%d_%Y') + '_Missing_Bumps.txt', 'a') as badchecks_file:
         badchecks_file.write('MISSING BUMPS\n')
         badchecks_file.write('-------------\n')
         for saletime in bad_checks:
@@ -42,7 +43,7 @@ def find_bad_checks(active_checks):
 def create_raw_text(window):
     sums = {}
     ssum = 0
-    with open(path + 'raw_' + time.strftime('%b_%d_%Y') + '_window_data.txt', 'a') as window_file: # For Window
+    with open(path + 'Raw_' + time.strftime('%b_%d_%Y') + '_Window_Data.txt', 'a') as window_file: # For Window
         window_file.write(f'Raw Data\n')
         window_file.write('---------')
         for intvl, data in window.items():
@@ -87,7 +88,7 @@ def create_window_text(sums, ssum):
         summary_file.write(f'TOTAL: {ssum}\n')
 
 def create_foh_entries_text(entered):
-    with open(path + time.strftime('%b_%d_%Y') + '_FoH_entries.txt', 'a') as entry_file: # For FoH entries
+    with open(path + time.strftime('%b_%d_%Y') + '_FoH_Entries.txt', 'a') as entry_file: # For FoH entries
         qtys = {}
         entry_file.write('FoH Entries\n')
         entry_file.write('-----------')
@@ -105,17 +106,32 @@ def create_foh_entries_text(entered):
         entry_file.write('-------\n')
         for ivl, entry_qty in qtys.items():
             entry_file.write(f'|{ivl}| TOTAL CHECKS: {entry_qty[0]} / TOTAL QTY: {entry_qty[1]}\n')
+    return qtys
 
-def create_sheets(sums):
-    monthly_wb = True # Change to False
+def create_sheets(sums, foh_checks, foh_items):
+    monthly_wb = True # Change to false
     if time.strftime('%d') == '01':
         monthly_wb = True
-    monthly_wb_name = f'{path}{time.strftime('%b_%Y_Button_Data')}.xlsx'
-    daily_wb_name = f'{path}{time.strftime('%m_%d_%Y')}.xlsx'
-    make_sheet.generate_daily_sheet(monthly_wb_name, sums, monthly_wb) # To add to monthly workbook
-    make_graph.make_daily_prod(monthly_wb_name, sums)
-    make_sheet.generate_daily_sheet(daily_wb_name, sums, True) # To add to daily workbook
-    make_graph.make_daily_prod(daily_wb_name, sums)
+    monthly_window_wb_name = f'{dir_name}/{time.strftime('%b_%Y_Window_Data')}.xlsx'
+    daily_window_wb_name = f'{path}{time.strftime('%m_%d_%Y_Window')}.xlsx'
+    # Window Data #
+    make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb) # To add to monthly workbook
+    make_graph.make_daily_prod(monthly_window_wb_name, sums)
+    make_sheet.generate_daily_sheet(daily_window_wb_name, sums, True) # To add to daily workbook
+    make_graph.make_daily_prod(daily_window_wb_name, sums)
+    # FoH Data #
+    # Checks
+    monthly_foh_wb_name = f'{dir_name}/{time.strftime('%b_%Y_FoH_Data')}.xlsx'
+    daily_foh_wb_name = f'{path}{time.strftime('%m_%d_%Y_FoH')}.xlsx'
+    make_sheet.generate_daily_sheet(monthly_foh_wb_name, foh_checks, monthly_wb, time.strftime('%m_%d_%Y') + '_Checks') # To add to monthly workbook
+    make_graph.make_daily_prod(monthly_foh_wb_name, foh_checks, time.strftime('%m_%d_%Y') + '_Checks')
+    make_sheet.generate_daily_sheet(daily_foh_wb_name, foh_checks, True, time.strftime('%m_%d_%Y') + '_Checks') # To add to daily workbook
+    make_graph.make_daily_prod(daily_foh_wb_name, foh_checks, time.strftime('%m_%d_%Y') + '_Checks')
+    # Items
+    make_sheet.generate_daily_sheet(monthly_foh_wb_name, foh_items, False, time.strftime('%m_%d_%Y') + '_Items') # To add to monthly workbook
+    make_graph.make_daily_prod(monthly_foh_wb_name, foh_items, time.strftime('%m_%d_%Y') + '_Items')
+    make_sheet.generate_daily_sheet(daily_foh_wb_name, foh_items, False, time.strftime('%m_%d_%Y') + '_Items') # To add to daily workbook
+    make_graph.make_daily_prod(daily_foh_wb_name, foh_items, time.strftime('%m_%d_%Y') + '_Items')
     # Will add return statement with try/catch blocks #
 
 # To update window
@@ -136,9 +152,9 @@ def tabulate(active_checks):
         for check in active_checks:
             anchor = active_checks[check]['ANCHOR']
             if not anchor:
-                print(active_checks[check]['Name'])
-                print(active_checks[check])
-                continue
+                with open(path + time.strftime('%b_%d_%Y') + '_Missing_Bumps.txt', 'a') as badchecks_file:
+                    badchecks_file.write(f'Missing Anchor bump for:\n| {active_checks[check]['Name']} | Qty: {active_checks[check]['Qty']}')
+                    continue
             if int(window_start) < int(check) < int(window_end): # FoH Entries
                 check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
                 entered[intvl].append([check_saletime, active_checks[check]['Name'], active_checks[check]['Qty']])
@@ -157,8 +173,8 @@ def tabulate(active_checks):
     sums = raw_data[0]
     ssum = raw_data[1]
     create_window_text(sums, ssum)
-    create_foh_entries_text(entered)
-    create_sheets(sums)
+    qtys = create_foh_entries_text(entered)
+    create_sheets(sums, qtys)
 
 def find_production():
     qsr_data = qsr.get_QSR_data()
@@ -202,24 +218,23 @@ def find_production():
 
 if __name__ == '__main__':
     if time.strftime('%d') == '01':
-        directory_name = "G:/Window Data/" + time.strftime('%m_%Y')
         # Create the monthly directory
         try:
-            mkdir(directory_name)
+            mkdir(dir_name)
         except FileExistsError:
-            print(f"Directory '{directory_name}' already exists.")
+            print(f"Directory '{dir_name}' already exists.")
         except PermissionError:
-            print(f"Permission denied: Unable to create '{directory_name}'.")
+            print(f"Permission denied: Unable to create '{dir_name}'.")
         except Exception as e:
             print(f"An error occurred: {e}")
-    directory_name = "G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%m_%d_%Y')
     # Create the daily directory
     try:
-        mkdir(directory_name)
+        daily_dir_name = path[:-1]
+        mkdir(daily_dir_name)
     except FileExistsError:
-        print(f"Directory '{directory_name}' already exists.")
+        print(f"Directory '{daily_dir_name}' already exists.")
     except PermissionError:
-        print(f"Permission denied: Unable to create '{directory_name}'.")
+        print(f"Permission denied: Unable to create '{daily_dir_name}'.")
     except Exception as e:
         print(f"An error occurred: {e}")
     find_production()

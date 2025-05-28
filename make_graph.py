@@ -3,10 +3,10 @@ from openpyxl.chart import (LineChart, Reference)
 from openpyxl.chart.axis import ChartLines
 import time
 
-def make_daily_prod(wbook, prods):
+def make_daily_prod(wbook, prods, sheet_name=time.strftime('%m_%d_%Y')):
     WORKBOOK = load_workbook(filename=wbook)
 #    WS = WORKBOOK[time.strftime('%m_%d_%Y')]
-    day = time.strftime('%m_%d_%Y') + ' Graph'
+    day = sheet_name + ' Graph'
     WORKBOOK.create_sheet(day)
     WS = WORKBOOK[day]
     fives_index = 0
