@@ -93,15 +93,15 @@ def create_foh_entries_text(entered):
         entry_file.write('FoH Entries\n')
         entry_file.write('-----------')
         for ivl, entry in entered.items():
-            sale_sum = 0
-            sum = 0
+            check_sum = 0
+            item_sum = 0
             entry_file.write(f'\n||| {ivl} |||\n')
             for vals in entry:
-                sum += int(vals[-1])
-                sale_sum += 1
+                check_sum += 1
+                item_sum += int(vals[-1])
                 entry_file.write(f'+ {vals[1]}: {vals[0]}\n')
-            entry_file.write(f'Checks: {sale_sum}\nItem Qty: {sum}\n')
-            qtys[ivl] = (sale_sum, sum)
+            entry_file.write(f'Checks: {check_sum}\nItem Qty: {item_sum}\n')
+            qtys[ivl] = (check_sum, item_sum)
         entry_file.write(f'\nSUMMARY\n')
         entry_file.write('-------\n')
         for ivl, entry_qty in qtys.items():
@@ -109,7 +109,7 @@ def create_foh_entries_text(entered):
     return qtys
 
 def create_sheets(sums, foh_checks, foh_items):
-    monthly_wb = True # Change to false
+    monthly_wb = False # Change to false
     if time.strftime('%d') == '01':
         monthly_wb = True
     monthly_window_wb_name = f'{dir_name}/{time.strftime('%b_%Y_Window_Data')}.xlsx'
@@ -138,11 +138,12 @@ def create_sheets(sums, foh_checks, foh_items):
 def tabulate(active_checks):
     window = {}
     entered = {}
+    missing_anchor_bumps = []
     # Collect data #
     start_time = 1000
     while start_time != 1915:
         end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
-        date = time.strftime('%Y%m%d') #'20250510'
+        date = time.strftime('%Y%m%d') # '20250511' 
         window_start, window_end = f'{date}{start_time}00', f'{date}{end_time}00'
         easier_win_start = start_time if start_time < 1300 else start_time - 1200
         easier_win_end = end_time if end_time < 1300 else end_time - 1200
@@ -151,10 +152,12 @@ def tabulate(active_checks):
         entered[intvl] = []
         for check in active_checks:
             anchor = active_checks[check]['ANCHOR']
-            if not anchor:
-                with open(path + time.strftime('%b_%d_%Y') + '_Missing_Bumps.txt', 'a') as badchecks_file:
-                    badchecks_file.write(f'Missing Anchor bump for:\n| {active_checks[check]['Name']} | Qty: {active_checks[check]['Qty']}')
-                    continue
+            if not anchor: 
+                if active_checks[check] not in missing_anchor_bumps:
+                    missing_anchor_bumps.append(active_checks[check])
+                    with open(path + time.strftime('%b_%d_%Y') + '_Missing_Bumps.txt', 'a') as badchecks_file:
+                        badchecks_file.write(f'Missing Anchor bump for:\n| {active_checks[check]['Name']} | Qty: {active_checks[check]['Qty']}\n')
+                continue
             if int(window_start) < int(check) < int(window_end): # FoH Entries
                 check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
                 entered[intvl].append([check_saletime, active_checks[check]['Name'], active_checks[check]['Qty']])
@@ -165,6 +168,7 @@ def tabulate(active_checks):
         for entry in window[intvl]:
             sum += entry[-1]
         window[intvl].append(sum)
+        print('Testing:', start_time)
         start_time += 5
         if str(start_time)[-2:] == '60':
             start_time += 40
@@ -174,7 +178,12 @@ def tabulate(active_checks):
     ssum = raw_data[1]
     create_window_text(sums, ssum)
     qtys = create_foh_entries_text(entered)
-    create_sheets(sums, qtys)
+    check_qtys = {}
+    item_qtys = {}
+    for ivl, qty in qtys.items():
+        check_qtys[ivl] = qty[0]
+        item_qtys[ivl] = qty[1]
+    create_sheets(sums, check_qtys, item_qtys)
 
 def find_production():
     qsr_data = qsr.get_QSR_data()
@@ -185,7 +194,7 @@ def find_production():
     while start_time != 1915:
         print('On:', start_time)
         end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
-        date = time.strftime('%Y%m%d') #'20250510'
+        date = time.strftime('%Y%m%d') # '20250511' 
         sq_checks = squirrel.get_check_data(f'{date}{start_time}00', f'{date}{end_time}00')
         # sq_checks now has all checks within 5 minute window that have SL items
         # sq_checks key: saletime
@@ -215,6 +224,7 @@ def find_production():
     print('Time taken:', end, '-', start, '=', end - start)
     find_bad_checks(active_checks)
     tabulate(active_checks)
+    return True
 
 if __name__ == '__main__':
     if time.strftime('%d') == '01':
@@ -238,6 +248,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"An error occurred: {e}")
     find_production()
+    
 
 '''
 def clean_checks(curr_hour):

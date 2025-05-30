@@ -11,10 +11,10 @@ pwd = os.getenv('SPWD')
 receivers = os.getenv('RECEIVERS')
 header = time.strftime('%m_%d_%Y', time.localtime())
 
-def update_header():
+# def update_header():
     # print('email header updated')
-    global header
-    header = time.strftime('%m_%d_%Y', time.localtime())
+  #  global header
+   # header = time.strftime('%m_%d_%Y', time.localtime())
     
 def sanity_email():
     # print('sanity email started')
@@ -33,33 +33,37 @@ def generate_email(filename, recipients):
     msg['From'] = sender
     msg['To'] = recipients
     msg.preamble = 'Not a MIME-readable recipient. That\'s ok!\n'
-    # print('right before with open')
+    with open('something.txt', 'a') as f:
+        f.write('right before with open\n')
     path = "G:/Window Data/" + time.strftime('%m_%Y') + '/' + time.strftime('%m_%d_%Y') + '/'
     with open(path + filename[0], 'rb') as fp:
         msg.add_attachment(fp.read(), maintype='text', subtype='plain', filename=header + ' Summary') # Change to pdf
     with open(path + filename[1], 'rb') as fp:
-        msg.add_attachment(fp.read(), maintype='application', subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename=header + ' Spreadsheet and Graph.xlsx')
-#    with open(filename[1], 'rb') as fp: # For spreadsheet
-#        msg.add_attachment(fp.read(), maintype='
-    # print('generate_email done')
+        msg.add_attachment(fp.read(), maintype='application', subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename=header + ' Window Spreadsheet and Graph.xlsx')
+    with open(path + filename[2], 'rb') as fp:
+        msg.add_attachment(fp.read(), maintype='application', subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename=header + ' FoH Spreadsheet and Graph.xlsx')
+    with open('something.txt', 'a') as f:
+        f.write('generate_email done\n')
     return msg
     
 def send_email(): # Add try/except clauses
     # print('send_stamps started')
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.ehlo()
-    server.starttls()
-    server.login(sender, pwd)
-    # print('login successful')
-    email_msg = generate_email([header + '_Summary.txt', header + '.xlsx'], receivers)
-    # print('generate_email activated')
-    server.send_message(email_msg)
-    # print('email_msg sent')
-    server.send_message(sanity_email())
-    # print('sanity email sent')
-    # print('emails sent')
-    server.close()
+    with open('something.txt', 'a') as f:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.ehlo()
+        server.starttls()
+        server.login(sender, pwd)
+        f.write('login successful\n')
+        email_msg = generate_email([header + '_Summary.txt', header + '_Window.xlsx', header + '_FoH.xlsx'], receivers)
+        f.write('generate_email activated\n')
+        server.send_message(email_msg)
+        f.write('email_msg sent\n')
+        server.send_message(sanity_email())
+        f.write('sanity email sent\n')
+        f.write('emails sent')
+        server.close()
 
 if __name__ == '__main__':
-    print('send_email running')
+    with open('something.txt', 'a') as f:
+        f.write('send_email running\n')
     send_email()
