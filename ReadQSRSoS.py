@@ -62,6 +62,9 @@ def find_entry(qsr_data, saletime, check_name):
         new_qsr_name = reformat_name(d['check_name'])
         if saletime == new_saletime and new_sq_name == new_qsr_name:
             return saletime[:8] + d['entered'][-6:]
+        # NEW 6/4/25 To handle bugs where saletimes are far apart b/n Squirrel & QSR #
+        elif new_sq_name == new_qsr_name:
+            return saletime[:8] + d['entered'][-6:]
     
 
 # Checks if in valid time range
@@ -79,7 +82,7 @@ def get_QSR_data():
     first_line = True # for BOM check (see Line ~8)
     # with open('C:/Users/Squirrel/Desktop/SOS20250511.txt', 'r', encoding="utf-16") as qsr_file:
     with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SpeedOfService.txt', 'r', encoding="utf-16") as qsr_file:
-    # with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SOS20250528.txt', 'r', encoding="utf-16") as qsr_file:
+    # with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SOS20250602.txt', 'r', encoding="utf-16") as qsr_file:
         for line in qsr_file:
             if first_line:
                 first_line = False

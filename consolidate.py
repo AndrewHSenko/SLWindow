@@ -109,6 +109,7 @@ def create_foh_entries_text(entered):
     return qtys
 
 def create_sheets(sums, foh_checks, foh_items):
+    return
     monthly_wb = False # Change to false
     if time.strftime('%d') == '01':
         monthly_wb = True
@@ -134,9 +135,11 @@ def create_sheets(sums, foh_checks, foh_items):
     make_graph.make_daily_prod(daily_foh_wb_name, foh_items, time.strftime('%m_%d_%Y') + '_Items')
     # Will add return statement with try/catch blocks #
 
+
 # To update window
 def tabulate(active_checks):
     window = {}
+    fpv_window = {}
     entered = {}
     missing_anchor_bumps = []
     # Collect data #
@@ -149,9 +152,14 @@ def tabulate(active_checks):
         easier_win_end = end_time if end_time < 1300 else end_time - 1200
         intvl = str(easier_win_start)[:-2]+ ':' + str(easier_win_start)[-2:] + ' - ' + str(easier_win_end)[:-2] + ':' + str(easier_win_end)[-2:]
         window[intvl] = []
+        fpv_window[intvl] = []
         entered[intvl] = []
         for check in active_checks:
             anchor = active_checks[check]['ANCHOR']
+            if active_checks[check]['has_finish']:
+                finish = active_checks[check]['HOT FINISH']
+            if active_checks[check]['has_pv']:
+                pv = active_checks[check]['PLATESVILLE']
             if not anchor: 
                 if active_checks[check] not in missing_anchor_bumps:
                     missing_anchor_bumps.append(active_checks[check])
@@ -164,6 +172,12 @@ def tabulate(active_checks):
             if int(window_start) < int(anchor) < int(window_end): # Anchor Bumps
                 check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
                 window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['Qty']))
+            # Figure this out #
+            '''
+            if int(window_start) < int(finish) < int(window_end): # Finish/PV Bumps
+                check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
+                fpv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['Qty']))
+            '''
         sum = 0
         for entry in window[intvl]:
             sum += entry[-1]
@@ -186,7 +200,7 @@ def tabulate(active_checks):
     create_sheets(sums, check_qtys, item_qtys)
 
 def find_production():
-    qsr_data = qsr.get_QSR_data()
+    qsr_data = qsr.get_QSR_data() #'20250602162500'
     active_checks = {}
     # Collect data #
     start = time.time()
@@ -202,7 +216,7 @@ def find_production():
         if sq_checks:
             for sq_check in sq_checks:
                 if sq_check not in active_checks : # Add check from Squirrel to active_checks
-                    active_checks[sq_check] = {'Name': sq_checks[sq_check][1], 'Qty': sq_checks[sq_check][2], 'HOT START' : '', 'HOT FINISH' : '', 'PLATESVILLE': '', 'ANCHOR' : ''}
+                    active_checks[sq_check] = {'Name': sq_checks[sq_check][1], 'Qty': sq_checks[sq_check][2], 'has_finish': sq_checks[sq_check][3][0], 'has_pv': sq_checks[sq_check][3][1], 'HOT START' : '', 'HOT FINISH' : '', 'PLATESVILLE': '', 'ANCHOR' : ''}
         # Set up bump times in active_checks #
         for sale_time in active_checks:
             check_name = active_checks[sale_time]['Name']
