@@ -3,7 +3,7 @@ from openpyxl.chart import (LineChart, Reference)
 from openpyxl.chart.axis import ChartLines
 import time
 
-def make_daily_prod(wbook, prods, sheet_name=time.strftime('%m_%d_%Y')):
+def make_daily_prod(wbook, prods, sheet_name):
     WORKBOOK = load_workbook(filename=wbook)
 #    WS = WORKBOOK[time.strftime('%m_%d_%Y')]
     day = sheet_name + ' Graph'

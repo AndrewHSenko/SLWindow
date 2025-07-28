@@ -72,7 +72,7 @@ def create_workbook(wb):
     workbook.active.title = 'Summary'
     workbook.save(filename=wb)
 
-def generate_daily_sheet(wb_name, data, new_wb, sheet_name=time.strftime('%m_%d_%Y')):
+def generate_daily_sheet(wb_name, data, new_wb, sheet_name):
     if new_wb:
         create_workbook(wb_name)
     just_prods = [int(float(data[d])) for d in data]

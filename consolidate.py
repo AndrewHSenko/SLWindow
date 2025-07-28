@@ -40,11 +40,11 @@ def find_bad_checks(active_checks):
             badchecks_file.write('\n')
     # Will add return statement with try/catch blocks #
 
-def create_raw_text(window):
+def create_raw_text(window, file_name):
     sums = {}
-    ssum = 0
-    with open(path + 'Raw_' + time.strftime('%b_%d_%Y') + '_Window_Data.txt', 'a') as window_file: # For Window
-        window_file.write(f'Raw Data\n')
+    total = 0
+    with open(f'{path}Raw_{time.strftime('%b_%d_%Y')}_{file_name}_Data.txt', 'a') as window_file: # For Window
+        window_file.write(f'Raw {file_name} Data\n')
         window_file.write('---------')
         for intvl, data in window.items():
             window_file.write(f'\n||| {intvl} |||\n')
@@ -55,12 +55,12 @@ def create_raw_text(window):
                 qty = int(d[-1])
                 window_file.write(f'+ {saletime} ({name}): {qty}\n')
             window_file.write(f'[ Total: {int(data[-1])} ]\n')
-            ssum += int(data[-1])
+            total += int(data[-1])
             sums[intvl] = str(data[-1])
-    return (sums, ssum)
+    return (sums, total)
 
-def create_window_text(sums, ssum):
-    with open(path + time.strftime('%m_%d_%Y') + '_Summary.txt', 'a') as summary_file:
+def create_window_text(sums, ssum, file_name):
+    with open(f'{path}{time.strftime('%m_%d_%Y')}_{file_name}_Summary.txt', 'a') as summary_file:
         summary_file.write(f'Summary\n')
         summary_file.write('-------\n')
         intvl_sum, best, worst = 0, 0, 1000 # If we're making 1000+ sandwiches every 5 minutes, give us a medal
@@ -108,58 +108,88 @@ def create_foh_entries_text(entered):
             entry_file.write(f'|{ivl}| TOTAL CHECKS: {entry_qty[0]} / TOTAL QTY: {entry_qty[1]}\n')
     return qtys
 
-def create_sheets(sums, foh_checks, foh_items):
-    return
+def create_sheets(sums=None, fsums=None, pvsums=None, foh_checks=None, foh_items=None):
     monthly_wb = False # Change to false
     if time.strftime('%d') == '01':
         monthly_wb = True
     monthly_window_wb_name = f'{dir_name}/{time.strftime('%b_%Y_Window_Data')}.xlsx'
     daily_window_wb_name = f'{path}{time.strftime('%m_%d_%Y_Window')}.xlsx'
+    window_name = time.strftime('%m_%d_%Y') + 'Window_Items'
+    finish_name = time.strftime('%m_%d_%Y') + 'Finish_Items'
+    pv_name = time.strftime('%m_%d_%Y') + 'PV_Items'
     # Window Data #
-    make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb) # To add to monthly workbook
-    make_graph.make_daily_prod(monthly_window_wb_name, sums)
-    make_sheet.generate_daily_sheet(daily_window_wb_name, sums, True) # To add to daily workbook
-    make_graph.make_daily_prod(daily_window_wb_name, sums)
+    if sums:
+        make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb, window_name) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_window_wb_name, sums, window_name)
+        make_sheet.generate_daily_sheet(daily_window_wb_name, sums, True, window_name) # To add to daily workbook
+        make_graph.make_daily_prod(daily_window_wb_name, sums, window_name)
+    # Finish Data #
+    if fsums:
+        make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb, finish_name) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_window_wb_name, sums, finish_name)
+        make_sheet.generate_daily_sheet(daily_window_wb_name, sums, True, finish_name) # To add to daily workbook
+        make_graph.make_daily_prod(daily_window_wb_name, sums, finish_name)
+    # PV Data #
+    if pvsums:
+        make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb, pv_name) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_window_wb_name, sums, pv_name)
+        make_sheet.generate_daily_sheet(daily_window_wb_name, sums, True, pv_name) # To add to daily workbook
+        make_graph.make_daily_prod(daily_window_wb_name, sums, pv_name)
     # FoH Data #
     # Checks
     monthly_foh_wb_name = f'{dir_name}/{time.strftime('%b_%Y_FoH_Data')}.xlsx'
     daily_foh_wb_name = f'{path}{time.strftime('%m_%d_%Y_FoH')}.xlsx'
-    make_sheet.generate_daily_sheet(monthly_foh_wb_name, foh_checks, monthly_wb, time.strftime('%m_%d_%Y') + '_Checks') # To add to monthly workbook
-    make_graph.make_daily_prod(monthly_foh_wb_name, foh_checks, time.strftime('%m_%d_%Y') + '_Checks')
-    make_sheet.generate_daily_sheet(daily_foh_wb_name, foh_checks, True, time.strftime('%m_%d_%Y') + '_Checks') # To add to daily workbook
-    make_graph.make_daily_prod(daily_foh_wb_name, foh_checks, time.strftime('%m_%d_%Y') + '_Checks')
+    foh_checks_name = time.strftime('%m_%d_%Y') + '_Checks'
+    foh_items_name = time.strftime('%m_%d_%Y') + '_Items'
+    if foh_checks:
+        make_sheet.generate_daily_sheet(monthly_foh_wb_name, foh_checks, monthly_wb, foh_checks_name) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_foh_wb_name, foh_checks, foh_checks_name)
+        make_sheet.generate_daily_sheet(daily_foh_wb_name, foh_checks, True, foh_checks_name) # To add to daily workbook
+        make_graph.make_daily_prod(daily_foh_wb_name, foh_checks, foh_checks_name)
     # Items
-    make_sheet.generate_daily_sheet(monthly_foh_wb_name, foh_items, False, time.strftime('%m_%d_%Y') + '_Items') # To add to monthly workbook
-    make_graph.make_daily_prod(monthly_foh_wb_name, foh_items, time.strftime('%m_%d_%Y') + '_Items')
-    make_sheet.generate_daily_sheet(daily_foh_wb_name, foh_items, False, time.strftime('%m_%d_%Y') + '_Items') # To add to daily workbook
-    make_graph.make_daily_prod(daily_foh_wb_name, foh_items, time.strftime('%m_%d_%Y') + '_Items')
+    if foh_items:
+        make_sheet.generate_daily_sheet(monthly_foh_wb_name, foh_items, False, foh_items_name) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_foh_wb_name, foh_items, foh_items_name)
+        make_sheet.generate_daily_sheet(daily_foh_wb_name, foh_items, False, foh_items_name) # To add to daily workbook
+        make_graph.make_daily_prod(daily_foh_wb_name, foh_items, foh_items_name)
     # Will add return statement with try/catch blocks #
-
 
 # To update window
 def tabulate(active_checks):
     window = {}
+    f_window = {}
+    p_window = {}
     fpv_window = {}
     entered = {}
     missing_anchor_bumps = []
     # Collect data #
     start_time = 1000
+    date = time.strftime('%Y%m%d') # '20250511' 
     while start_time != 1915:
         end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
-        date = time.strftime('%Y%m%d') # '20250511' 
         window_start, window_end = f'{date}{start_time}00', f'{date}{end_time}00'
         easier_win_start = start_time if start_time < 1300 else start_time - 1200
         easier_win_end = end_time if end_time < 1300 else end_time - 1200
         intvl = str(easier_win_start)[:-2]+ ':' + str(easier_win_start)[-2:] + ' - ' + str(easier_win_end)[:-2] + ':' + str(easier_win_end)[-2:]
         window[intvl] = []
+        f_window[intvl] = []
+        p_window[intvl] = []
         fpv_window[intvl] = []
         entered[intvl] = []
         for check in active_checks:
             anchor = active_checks[check]['ANCHOR']
+            '''
             if active_checks[check]['has_finish']:
                 finish = active_checks[check]['HOT FINISH']
+                if active_checks[check]['has_pv']:
+                    pv = active_checks[check]['PLATESVILLE']
+                    if finish > pv:
+                        fpv = finish
+                    else:
+                        fpv = pv
             if active_checks[check]['has_pv']:
                 pv = active_checks[check]['PLATESVILLE']
+            '''
             if not anchor: 
                 if active_checks[check] not in missing_anchor_bumps:
                     missing_anchor_bumps.append(active_checks[check])
@@ -187,17 +217,27 @@ def tabulate(active_checks):
         if str(start_time)[-2:] == '60':
             start_time += 40
     # Tabulate data #
-    raw_data = create_raw_text(window)
+    raw_data = create_raw_text(window, 'Window')
     sums = raw_data[0]
-    ssum = raw_data[1]
-    create_window_text(sums, ssum)
+    stotal = raw_data[1]
+    create_window_text(sums, stotal, 'Window')
+    '''
+    finish_data = create_raw_text(window, 'Finish')
+    fsums = finish_data[0]
+    ftotal = finish_data[1]
+    create_window_text(fsums, ftotal, 'Finish')
+    pv_data = create_raw_text(window, 'PV')
+    pvsums = pv_data[0]
+    pvtotal = pv_data[1]
+    create_window_text(pvsums, pvtotal, 'PV')
+    '''
     qtys = create_foh_entries_text(entered)
     check_qtys = {}
     item_qtys = {}
     for ivl, qty in qtys.items():
         check_qtys[ivl] = qty[0]
         item_qtys[ivl] = qty[1]
-    create_sheets(sums, check_qtys, item_qtys)
+    create_sheets(sums, None, None, check_qtys, item_qtys)
 
 def find_production():
     qsr_data = qsr.get_QSR_data() #'20250602162500'
@@ -205,10 +245,10 @@ def find_production():
     # Collect data #
     start = time.time()
     start_time = 1000 # Not using %I to make it easier to handle AM to PM hour change
+    date = time.strftime('%Y%m%d') # '20250511' 
     while start_time != 1915:
         print('On:', start_time)
         end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
-        date = time.strftime('%Y%m%d') # '20250511' 
         sq_checks = squirrel.get_check_data(f'{date}{start_time}00', f'{date}{end_time}00')
         # sq_checks now has all checks within 5 minute window that have SL items
         # sq_checks key: saletime
