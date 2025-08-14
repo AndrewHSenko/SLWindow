@@ -80,9 +80,9 @@ def find_entry(qsr_data, saletime, check_name):
 def get_QSR_data():
     qsr_contents = {}
     first_line = True # for BOM check (see Line ~8)
-    # with open('C:/Users/Squirrel/Desktop/SOS20250511.txt', 'r', encoding="utf-16") as qsr_file:
-    with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SpeedOfService.txt', 'r', encoding="utf-16") as qsr_file:
-    # with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SOS20250602.txt', 'r', encoding="utf-16") as qsr_file:
+    # with open('C:/Users/Squirrel/Desktop/SOS20250804.txt', 'r', encoding="utf-16") as qsr_file:
+    # with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SpeedOfService.txt', 'r', encoding="utf-16") as qsr_file:
+    with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SOS20250804.txt', 'r', encoding="utf-16") as qsr_file:
         for line in qsr_file:
             if first_line:
                 first_line = False

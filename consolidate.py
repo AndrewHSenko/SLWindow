@@ -110,7 +110,7 @@ def create_foh_entries_text(entered):
 
 def create_sheets(sums=None, fsums=None, pvsums=None, foh_checks=None, foh_items=None):
     monthly_wb = False # Change to false
-    if time.strftime('%d') == '01':
+    if time.strftime('%d') == '05':
         monthly_wb = True
     monthly_window_wb_name = f'{dir_name}/{time.strftime('%b_%Y_Window_Data')}.xlsx'
     daily_window_wb_name = f'{path}{time.strftime('%m_%d_%Y_Window')}.xlsx'
@@ -164,7 +164,7 @@ def tabulate(active_checks):
     missing_anchor_bumps = []
     # Collect data #
     start_time = 1000
-    date = time.strftime('%Y%m%d') # '20250511' 
+    date = '20250804' # time.strftime('%Y%m%d')
     while start_time != 1915:
         end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
         window_start, window_end = f'{date}{start_time}00', f'{date}{end_time}00'
@@ -245,7 +245,7 @@ def find_production():
     # Collect data #
     start = time.time()
     start_time = 1000 # Not using %I to make it easier to handle AM to PM hour change
-    date = time.strftime('%Y%m%d') # '20250511' 
+    date = '20250804' # time.strftime('%Y%m%d') 
     while start_time != 1915:
         print('On:', start_time)
         end_time = start_time + 5 if str(start_time)[-2:] != '55' else start_time + 45 # To fix xx:60 situations
@@ -281,7 +281,7 @@ def find_production():
     return True
 
 if __name__ == '__main__':
-    if time.strftime('%d') == '01':
+    if time.strftime('%d') == '05':
         # Create the monthly directory
         try:
             mkdir(dir_name)
