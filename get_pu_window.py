@@ -1,7 +1,7 @@
 # https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit?gid=SHEET_ID#gid=SHEET_ID #
 import os.path
-import re
 import time
+import re
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -12,13 +12,21 @@ from googleapiclient.errors import HttpError
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive']
 # SPREADSHEET_ID = '11RDkPuupd7lq8TnkAagahZSBuOfzXGGLOhZGvdroOp4' # Should be dynamic # Dev Change #
 # RAW_RANGE = 'D5:L126' # Trims surrounding empty rows
-TOTAL_RANGE = 'M6:M125' # Should be 10:00am - 8:00pm, 120 total entries
-WINDOW_RANGE = 'O6:O125'
 DEFAULT = 'M1'
 DEFAULT_VAL = '18'
 
-TOKE_PATH = 'C:/Users/Squirrel/Documents/VSCode Scripts/SLWindow/token.json'
-CREDS_PATH = 'C:/Users/Squirrel/Documents/VSCode Scripts/SLWindow/credentials.json'
+# LAPTOP #
+# TOKE_PATH = '/Users/andrewsenkowski/Documents/Coding Projects/DevSLWindow/token.json'
+# OFFICE #
+# TOKE_PATH = '/Users/andrew.senkowski/Documents/DevSLWindow/token.json'
+# TERMINAL #
+TOKE_PATH = 'C:/Users/Squirrel/Documents/VSCode Scripts/DevSLWindow/token.json'
+
+# LAPTOP #
+# CREDS_PATH = '/Users/andrewsenkowski/Documents/Coding Projects/DevSLWindow/credentials.json'
+# OFFICE #
+# TERMINAL #
+CREDS_PATH = 'C:/Users/Squirrel/Documents/VSCode Scripts/DevSLWindow/credentials.json'
 
 def login(creds):
     if creds and creds.expired and creds.refresh_token:
@@ -29,7 +37,7 @@ def login(creds):
       )
       creds = flow.run_local_server(port=0)
     # Save the credentials for the next run
-    with open('token.json', 'w') as token:
+    with open(TOKE_PATH, 'w') as token:
       token.write(creds.to_json())
 
 def aggregate(spreadsheet, spreadsheet_id, range_name): # Will need to modify to separate out instructions for different data
@@ -79,7 +87,7 @@ def get_weekly_sheet_id(week):
             if month_folder_result == []: # No results found
                 with open('pu_errors.txt', 'a') as puf:
                     puf.write(f'Could not find {time.strftime("%B")} {time.strftime("%Y")[-2:]}. Double check the folder name is correct.\n')
-                month_folder_req = f'mimeType = "application/vnd.google-apps.folder" and trashed=false and name contains \"{time.strftime("%b")}\"' # Backup request
+                month_folder_req = f'mimeType = "application/vnd.google-apps.folder" and trashed=false and name contains \"{time.strftime("%b")}\" or name contains \"{time.strftime("%b").upper()}\"' # Backup request
                 month_folder_result = drive.files().list(
                     q = month_folder_req,
                     spaces="drive",
@@ -96,7 +104,7 @@ def get_weekly_sheet_id(week):
             spreadsheet_id_req = f'mimeType = "application/vnd.google-apps.spreadsheet" and trashed=false and "{month_folder_id}" in parents'
             spreadsheet_id_result = drive.files().list(
                 q = spreadsheet_id_req,
-                orderBy = "createdTime",
+                orderBy = "name_natural",
                 spaces="drive",
                 pageSize=7, # Max is 5 weeks for the fiscal month, plus extra cushion
                 fields="nextPageToken, files(id, name)",
@@ -114,7 +122,7 @@ def get_weekly_sheet_id(week):
             puf.write(str(time.time()) + ':' + str(e) + '\n')
     
 
-def get_data(week_num, sheet_num):
+def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual_end): # CHANGED 12/5
     days = [
         'MON',
         'TUE',
@@ -147,13 +155,14 @@ def get_data(week_num, sheet_num):
         if not is_day:
             return False
         # sheet_id = sheet.get('properties', {}).get('sheetId', 0)
-        window_range_name = f'{title}!{WINDOW_RANGE}'
-        total_range_name = f'{title}!{TOTAL_RANGE}'
+        window_range_name = f'{title}!{window_start}:{window_end}'
+        actual_range_name = f'{title}!{actual_start}:{actual_end}'
+        print(window_range_name, actual_range_name)
         default = aggregate(spreadsheet, spreadsheet_id, DEFAULT)
         if not default[0].isnumeric():
             default[0] = DEFAULT_VAL # 18
         planned = aggregate(spreadsheet, spreadsheet_id, window_range_name)
-        actual = aggregate(spreadsheet, spreadsheet_id, total_range_name)
+        actual = aggregate(spreadsheet, spreadsheet_id, actual_range_name)
         total = len(actual)
         if len(planned) < total:
             for i in range(len(planned), total): # Will replace trailing blanks (normally ommitted) with the correct default window setting
@@ -170,27 +179,3 @@ def get_data(week_num, sheet_num):
         with open('pu_errors.txt', 'a') as errtext:
             errtext.write(str(time.time()) + ':' + str(e) + '\n')
         return False
-
-if __name__ == '__main__':
-    j = 0
-    while j < 7:
-        result = get_data(2, j)
-        if not result: # Returned False from error
-            continue
-        i = 0
-        for value in result[0].values():
-            if i % 10 == 0 and i != 0:
-                i = 0
-                print()
-            print(value, end=' | ')
-        print('-- BREAK --')
-        i = 0
-        for value in result[1].values():
-            if i % 10 == 0 and i != 0:
-                i = 0
-                print()
-            print(value, end=' | ')
-        print()
-        j += 1
-
-# 2236 Woodview Apt. 362

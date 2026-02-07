@@ -3,6 +3,10 @@
 credentials.json
 token.json
 pu_errors.txt
+overlay_errors.txt
+dir_creation_failed.txt
+__pycache__
+Results
 
 # Generic Node.js gitignore #
 

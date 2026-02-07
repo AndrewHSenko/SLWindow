@@ -62,26 +62,11 @@ def find_entry(qsr_data, saletime, check_name):
         new_qsr_name = reformat_name(d['check_name'])
         if saletime == new_saletime and new_sq_name == new_qsr_name:
             return saletime[:8] + d['entered'][-6:]
-        # NEW 6/4/25 To handle bugs where saletimes are far apart b/n Squirrel & QSR #
-        elif new_sq_name == new_qsr_name:
-            return saletime[:8] + d['entered'][-6:]
-    
-# Checks if in valid time range
-# def check_valid_entry(raw_data, start_time, end_time):
-#    if raw_data[23] == 'COFFEE': # Next Door Cafe
-#        return False
-#    bump_time = raw_data[32:34]
-#    if len(bump_time[1]) == 1: # single digit minute
-#        bump_time[1] = '0' + bump_time[1]
-#    bump_time = ''.join(bump_time) # gets hour and min
-#    return True if int(bump_time) >= start_time and int(bump_time) < end_time else False
 
 def get_QSR_data():
     qsr_contents = {}
     first_line = True # for BOM check (see Line ~8)
-    # with open('C:/Users/Squirrel/Desktop/WindowTestSet.txt', 'r', encoding="utf-16") as qsr_file:
-    # with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SpeedOfService.txt', 'r', encoding="utf-16") as qsr_file:
-    with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SOS20250913.txt', 'r', encoding="utf-16") as qsr_file:
+    with open('c:/ProgramData/QSR Automations/ConnectSmart/BackOffice/SpeedofService/SpeedOfService.txt', 'r', encoding="utf-16") as qsr_file:
         for line in qsr_file:
             if first_line:
                 first_line = False
@@ -95,3 +80,12 @@ def get_QSR_data():
     # Now sos is filled with all SpeedOfService data relevant to SL (sandwich line) #
     return qsr_contents
 
+# Checks if in valid time range
+# def check_valid_entry(raw_data, start_time, end_time):
+#    if raw_data[23] == 'COFFEE': # Next Door Cafe
+#        return False
+#    bump_time = raw_data[32:34]
+#    if len(bump_time[1]) == 1: # single digit minute
+#        bump_time[1] = '0' + bump_time[1]
+#    bump_time = ''.join(bump_time) # gets hour and min
+#    return True if int(bump_time) >= start_time and int(bump_time) < end_time else False
