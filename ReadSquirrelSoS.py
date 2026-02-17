@@ -108,8 +108,6 @@ def get_check(start, end):
     return query
 
 def get_check_data(start, end):
-    SERVER = os.getenv('SERVER')
-    DATABASE = os.getenv('DB')
     connectionString = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={SERVER};DATABASE={DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;'
     checks = {}
     with pyodbc.connect(connectionString) as conn:
@@ -117,39 +115,42 @@ def get_check_data(start, end):
         start_time = datetime.strptime(start, '%Y%m%d%H%M%S')
         end_time = datetime.strptime(end, '%Y%m%d%H%M%S')
         cursor.execute(get_check(start_time, end_time))
-        rows = cursor.fetchall() # Could iterate using fetchone, but # of rows should never be too large
-        if rows == []: # Empty row
+        q_result = cursor.fetchone()
+        if q_result == None: # Empty query results
             return
-        for check in rows:
-            sale_time = check[2]
-            if not check[1]: # No name
-                print(check[0])
+        while q_result != None: # q_result has query results stored as a list for each row (one menu item per row)
+            sale_time = q_result[2]
+            if not q_result[1]: # No name
+                print(q_result[0])
                 continue
-            if sale_time not in checks: 
-                checks[sale_time] = {'check_no' : check[0], 'check_name' : check[1].strip(), 'menu_ids' : {check[3] : int(check[4])}}
-            else:
-                if check[3] in checks[sale_time]['menu_ids']:
-                    checks[sale_time]['menu_ids'][check[3]] += check[4]
+            if sale_time not in checks: # Add this check
+                checks[sale_time] = {'check_no' : q_result[0], 'check_name' : q_result[1].strip(), 'menu_ids' : {q_result[3] : [int(q_result[4]), round(Decimal(q_result[5]), 2)]}}
+            else: # Update this check
+                if q_result[3] in checks[sale_time]['menu_ids']:
+                    checks[sale_time]['menu_ids'][q_result[3]][0] += q_result[4]
+                    checks[sale_time]['menu_ids'][q_result[3]][1] += q_result[5]
                 else:
-                    checks[sale_time]['menu_ids'][check[3]] = check[4]
+                    checks[sale_time]['menu_ids'][q_result[3]] = [int(q_result[4]), round(Decimal(q_result[5]), 2)]
+            q_result = cursor.fetchone()
     # Now checks is filled with every check entered between start and end #
     no_make_id = [595, 8291]
     checks_data = {}
+    # check_data: check_no, check_name, menu_ids (menu_id, qty), total_price
     for check, check_data in checks.items():
-        has_start = False
-        has_finish = False
-        has_PV = False
-        latke = 0 # Every 4 latkes are rung in as one item
-        knish = 0 # Every 4 knishes are rung in as one item
+        has_start = has_finish = has_PV = False
+        latke = knish = 0 # Every 4 latkes and knishes are rung in as one item
         check_qty = 0
-        bl_items = [] # Backline items
-        bl_qty = 0
-        pv_items = [] # PV items
+        bl_items = pv_items = [] # Backline and PV items
+        bl_qty = pv_qty = 0
         pv_qty = 0
-        for menu_id, qty in check_data['menu_ids'].items():
+        total_price = 0
+        for menu_id, item_info in check_data['menu_ids'].items():
             if menu_id in backline_ids:
-                for i in range(int(qty)):
+                qty = item_info[0]
+                price = item_info[1]
+                for i in range(qty):
                     bl_items.append(backline_ids[menu_id])
+                total_price += price
                 if menu_id == 1638: # Latke
                     latke += qty
                     continue
@@ -158,8 +159,11 @@ def get_check_data(start, end):
                 has_start = True
                 has_finish = True
             elif menu_id in pv_ids:
-                for i in range(int(qty)):
+                qty = item_info[0]
+                price = item_info[1]
+                for i in range(qty):
                     pv_items.append(pv_ids[menu_id])
+                total_price += price
                 if menu_id == 4444: # Ht'd Knish
                     knish += qty
                     continue
@@ -169,15 +173,6 @@ def get_check_data(start, end):
                 check_qty += qty
                 pv_qty += qty
                 has_PV = True
-            # elif menu_id in no_make_id: # Accounts for tickets rung in as no makes
-            #     with open('nomakes.txt', 'a') as nm:
-            #         nm.write(str(check_data['check_no']) + ' ' + str(check_data['check_name']) + '\n')
-            #     check_qty = 0
-            #     has_start = has_finish = has_pv = False
-            #     latke = knish = 0
-            #     bl_items = pv_items = [] # Same mem loc I think, but irrelevant to this program
-            #     bl_qty = pv_qty = 0
-            #     break
         if latke:
             has_start = True
             has_finish = True
@@ -199,6 +194,6 @@ def get_check_data(start, end):
             continue
         sale_time = check.strftime('%Y%m%d%H%M%S')
         # Check No, Check Name, Check Qty, Has___, BLitems / PVitems #
-        checks_data[sale_time] = [check_data['check_no'], check_data['check_name'], check_qty, (has_start, has_finish, has_PV), (bl_qty, pv_qty), (bl_items, pv_items)]
+        checks_data[sale_time] = [check_data['check_no'], check_data['check_name'], check_qty, total_price, (has_start, has_finish, has_PV), (bl_qty, pv_qty), (bl_items, pv_items)]
     # checks_data is now filled with the qty for each check (including empty checks)
     return checks_data

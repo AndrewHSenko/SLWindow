@@ -1,10 +1,10 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
 .env
 .DS_Store
 credentials.json
 token.json
 pu_errors.txt
-overlay_errors.txt
-dir_creation_failed.txt
+email_errors.txt
 __pycache__
 Results
 
