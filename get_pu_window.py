@@ -2,6 +2,7 @@
 import os.path
 import time
 import re
+from dotenv import load_dotenv
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -15,20 +16,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.
 DEFAULT = 'M1'
 DEFAULT_VAL = '18'
 
-# LAPTOP #
-# TOKE_PATH = '/Users/andrewsenkowski/Documents/Coding Projects/DevSLWindow/token.json'
-# OFFICE #
-# TOKE_PATH = '/Users/andrew.senkowski/Documents/DevSLWindow/token.json'
-# TERMINAL #
-TOKE_PATH = 'C:/Users/Squirrel/Documents/VSCode Scripts/DevSLWindow/token.json'
-
-# LAPTOP #
-# CREDS_PATH = '/Users/andrewsenkowski/Documents/Coding Projects/DevSLWindow/credentials.json'
-# OFFICE #
-# TERMINAL #
-CREDS_PATH = 'C:/Users/Squirrel/Documents/VSCode Scripts/DevSLWindow/credentials.json'
-
-def login(creds):
+def login(creds, CREDS_PATH, TOKE_PATH):
     if creds and creds.expired and creds.refresh_token:
       creds.refresh(Request())
     else:
@@ -64,12 +52,12 @@ def aggregate(spreadsheet, spreadsheet_id, range_name): # Will need to modify to
         with open('pu_errors.txt', 'a') as puf:
             puf.write(str(time.time()) + ':' + str(e) + '\n')
 
-def get_weekly_sheet_id(week):
+def get_weekly_sheet_id(week, CREDS_PATH, TOKE_PATH):
     creds = None
     if os.path.exists(TOKE_PATH):
         creds = Credentials.from_authorized_user_file(TOKE_PATH, SCOPES)
     if not creds or not creds.valid:
-        login(creds)
+        login(creds, CREDS_PATH, TOKE_PATH)
     try:
         drive = build('drive', 'v3', credentials=creds)
         files = []
@@ -122,7 +110,7 @@ def get_weekly_sheet_id(week):
             puf.write(str(time.time()) + ':' + str(e) + '\n')
     
 
-def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual_end): # CHANGED 12/5
+def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual_end):
     days = [
         'MON',
         'TUE',
@@ -132,15 +120,20 @@ def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual
         'SAT',
         'SUN'
     ]
+    load_dotenv()
+    CREDS_PATH = os.getenv('CREDS_PATH')
+    TOKE_PATH = os.getenv('TOKE_PATH')
+    if not TOKE_PATH or not CREDS_PATH:
+        raise ValueError("Token/Credentials are NoneTypes (Did you load dotenv?)")
     creds = None
     if os.path.exists(TOKE_PATH):
         creds = Credentials.from_authorized_user_file(TOKE_PATH, SCOPES)
     if not creds or not creds.valid:
-        login(creds)
+        login(creds, CREDS_PATH, TOKE_PATH)
     try:
         service = build('sheets', 'v4', credentials=creds)
         # test_searching_drive(service)
-        spreadsheet_id = get_weekly_sheet_id(week_num)
+        spreadsheet_id = get_weekly_sheet_id(week_num, CREDS_PATH, TOKE_PATH)
         spreadsheet = service.spreadsheets()
         sheet_metadata = spreadsheet.get(spreadsheetId=spreadsheet_id).execute()
         sheets = sheet_metadata.get('sheets', '')

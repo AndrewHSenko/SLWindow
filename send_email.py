@@ -1,8 +1,16 @@
 import os
+import base64
 from dotenv import load_dotenv
 import time
 import smtplib
 from email.message import EmailMessage
+
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+
+
+SCOPES = ['https://mail.google.com/']
 
 def generate_email(send_files, sender, recipients, dir_path):
     try:
@@ -37,28 +45,52 @@ def generate_email(send_files, sender, recipients, dir_path):
     except Exception as e:
         with open('email_errors.txt', 'w') as err_text:
             err_text.write(f'{header} {time.strftime('%I:%M:%S %p')}: {e}\n')
-                
+        
+def login(creds, CREDS_PATH, TOKE_PATH):
+    try:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                CREDS_PATH, SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+        with open(TOKE_PATH, 'w') as token:
+            token.write(creds.to_json())
+        return creds
+    except Exception as e:
+        with open('email_errors.txt', 'w') as err_text:
+            err_text.write(f'{time.strftime('%m_%d_%Y', time.localtime())} {time.strftime('%I:%M:%S %p')}: {e}\n')
+
 def send_stamps(dir_path):
     try:
-        load_dotenv()   
+        load_dotenv()
+        CREDS_PATH = os.getenv('CREDS_PATH')
+        TOKE_PATH = os.getenv('TOKE_PATH')
+        if not TOKE_PATH or not CREDS_PATH:
+            raise ValueError("Token/Credentials are NoneTypes (Did you load dotenv?)")
+        creds = None
+        if os.path.exists(TOKE_PATH):
+            creds = Credentials.from_authorized_user_file(TOKE_PATH, SCOPES)
+        if not creds or not creds.valid:
+            access_token = login(creds, TOKE_PATH)
         sender = os.getenv('SENDER')
-        pwd = os.getenv('EMAIL_PWD')
         recipients = os.getenv('RECIPIENT')
-        if not sender or not pwd or not recipients:
-            raise ValueError("Sender/Pwd/Recipients are NoneTypes (Did you load dotenv?)")
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.ehlo()
-        server.starttls()
-        server.login(sender, pwd)
-        emails = generate_email({
-            'Window' : True,
-            'FoH' : True,
-            'Pending' : True,
-            'Stations' : True
-        }, sender, recipients, dir_path)
-        server.send_message(emails[0])
-        server.send_message(emails[1])
-        server.close()
+        if not sender or not recipients:
+            raise ValueError("Sender/Recipients are NoneTypes (Did you load dotenv?)")
+        auth_info = f"user={sender}\1auth=Bearer {access_token}\1\1"
+        auth_str = base64.b64encode(auth_info.encode()).decode()
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.docmd("AUTH", "XOAUTH2 " + auth_str)
+            emails = generate_email({
+                'Window' : True,
+                'FoH' : True,
+                'Pending' : True,
+                'Stations' : True
+            }, sender, recipients, dir_path)
+            server.send_message(emails[0])
+            server.send_message(emails[1])
     except Exception as e:
         with open('email_errors.txt', 'w') as err_text:
             err_text.write(f'{time.strftime('%m_%d_%Y', time.localtime())} {time.strftime('%I:%M:%S %p')}: {e}\n')
