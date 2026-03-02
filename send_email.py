@@ -73,7 +73,8 @@ def send_stamps(dir_path):
         if os.path.exists(TOKE_PATH):
             creds = Credentials.from_authorized_user_file(TOKE_PATH, SCOPES)
         if not creds or not creds.valid:
-            access_token = login(creds, TOKE_PATH)
+            raise ValueError("Credentials are invalid or absent")
+        access_token = login(creds, CREDS_PATH, TOKE_PATH)
         sender = os.getenv('SENDER')
         recipients = os.getenv('RECIPIENT')
         if not sender or not recipients:
