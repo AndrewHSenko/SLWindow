@@ -3,16 +3,15 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 
-load_dotenv()
-
 backline_ids = {
-    # 9981 : 'SOM AUG',
-    # 10012 : 'SOM SEP',
-    # 10065 : 'SOM OCT',
-    # 10121 : 'SOM NOV',
-    # 10257 : 'SOM DEC',
-    # 9725 : 'SOM JAN',
-    10347 : 'SOM FEB',
+    # 9981 : 'SOM AUG 25',
+    # 10012 : 'SOM SEP 25',
+    # 10065 : 'SOM OCT 25',
+    # 10121 : 'SOM NOV 25',
+    # 10257 : 'SOM DEC 25',
+    # 9725 : 'SOM JAN 26',
+    # 10347 : 'SOM FEB 26',
+    10377 : 'SOM MAR',
     1146 : 'CUSTOM',
     353 : '#1',
     379 : '#2',
@@ -96,42 +95,43 @@ pv_ids = {
     # End defunct knish ids #
 }
 
-def get_check(start, end):
-    query = f'''
+def get_check(cursor, start, end):
+    query = '''
     SELECT ch.CheckNo, ct.Name, ci.SaleTime, ci.MenuID, ci.Quantity
     FROM ((Squirrel.dbo.X_CheckHeader AS ch
     JOIN Squirrel.dbo.X_CheckTable AS ct ON ch.CheckID = ct.CheckID)
     JOIN Squirrel.dbo.X_CheckItem AS ci ON ch.CheckID = ci.CheckID)
-    WHERE ci.SaleTime BETWEEN '{start}' AND '{end}'
+    WHERE ci.SaleTime BETWEEN ? AND ?
     ORDER BY ci.SaleTime ASC
     '''
-    return query
+    cursor.execute(query, start, end)
+    return cursor.fetchall()
 
 def get_check_data(start, end):
+    load_dotenv()
+    SERVER = os.getenv('SERVER')
+    DATABASE = os.getenv('DB')
     connectionString = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={SERVER};DATABASE={DATABASE};Trusted_Connection=yes;TrustServerCertificate=yes;'
     checks = {}
     with pyodbc.connect(connectionString) as conn:
         cursor = conn.cursor()
         start_time = datetime.strptime(start, '%Y%m%d%H%M%S')
         end_time = datetime.strptime(end, '%Y%m%d%H%M%S')
-        cursor.execute(get_check(start_time, end_time))
-        q_result = cursor.fetchone()
-        if q_result == None: # Empty query results
+        rows = get_check(cursor, start_time, end_time) # List of all query results
+        if rows == []: # No checks for this 5 minute period
             return
-        while q_result != None: # q_result has query results stored as a list for each row (one menu item per row)
-            sale_time = q_result[2]
-            if not q_result[1]: # No name
-                print(q_result[0])
-                continue
-            if sale_time not in checks: # Add this check
-                checks[sale_time] = {'check_no' : q_result[0], 'check_name' : q_result[1].strip(), 'menu_ids' : {q_result[3] : [int(q_result[4]), round(Decimal(q_result[5]), 2)]}}
-            else: # Update this check
-                if q_result[3] in checks[sale_time]['menu_ids']:
-                    checks[sale_time]['menu_ids'][q_result[3]][0] += q_result[4]
-                    checks[sale_time]['menu_ids'][q_result[3]][1] += q_result[5]
+        for check in rows:
+            sale_time = check[2]
+            # if not check[1]: # No name
+            #     print(check[0])
+            #     continue
+            if sale_time not in checks: 
+                checks[sale_time] = {'check_no' : check[0], 'check_name' : check[1].strip(), 'menu_ids' : {check[3] : int(check[4])}}
+            else:
+                if check[3] in checks[sale_time]['menu_ids']:
+                    checks[sale_time]['menu_ids'][check[3]] += check[4]
                 else:
-                    checks[sale_time]['menu_ids'][q_result[3]] = [int(q_result[4]), round(Decimal(q_result[5]), 2)]
-            q_result = cursor.fetchone()
+                    checks[sale_time]['menu_ids'][check[3]] = check[4]
     # Now checks is filled with every check entered between start and end #
     no_make_id = [595, 8291]
     checks_data = {}
