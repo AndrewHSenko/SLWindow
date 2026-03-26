@@ -14,12 +14,12 @@ import ast
 from copy import deepcopy
 
 # HEADERS #
-MONTH_H = '12_06_2025' # time.strftime('%m_%d_%Y')
-M_NAME_H = 'Dec_06_2025' # time.strftime('%b_%d_%Y')
-NO_DAY = 'Dec_2025' # time.strftime('%b_%Y')
-WEEK_NUM = 1
-SHEET_NUM = 5
-DATE = '20251206'
+MONTH_H = '03_21_2026' # time.strftime('%m_%d_%Y')
+M_NAME_H = 'Mar_21_2026' # time.strftime('%b_%d_%Y')
+NO_DAY = 'Mar_2026' # time.strftime('%b_%Y')
+WEEK_NUM = 3
+SHEET_NUM = 6 # Starts with 1
+DATE = '20260321'
 WINDOW_START = 'M5'
 WINDOW_END = 'M125' # M135
 ACTUAL_START = 'O5'
@@ -28,8 +28,9 @@ NUM_ROWS = 12 # 13
 START_HOUR = 10 # 9
 # DATE = time.strftime('%Y%m%d')
 
-DIR_NAME = "G:/Window Data/" + time.strftime('%m_%Y')
-
+# DIR_NAME = "G:/Window Data/" + time.strftime('%m_%Y')
+# DIR_NAME = "G:/Window Data/02_2026"
+DIR_NAME = "C:/Users/Squirrel/Desktop/Window Data/03_2026"
 DEST_PATH = f'{DIR_NAME}/{MONTH_H}/'
 
 # Finds bad checks (missing a station bump) #
@@ -263,7 +264,7 @@ def tabulate(active_checks):
     pv_window = {}
     fpv_window = {}
     entered = {}
-    # missing_anchor_bumps = []
+    missing_anchor_bumps = []
     # Collect data #
     start_time = int(f'{START_HOUR}00')
     while start_time != 1915:
@@ -280,12 +281,12 @@ def tabulate(active_checks):
         entered[intvl] = []
         for check in active_checks:   
             anchor = active_checks[check]['ANCHOR']
-            # if not anchor: 
-            #     if active_checks[check] not in missing_anchor_bumps:
-            #         missing_anchor_bumps.append(active_checks[check])
-            #         with open(DEST_PATH + M_NAME_H + '_Missing_Bumps.txt', 'a') as badchecks_file:
-            #             badchecks_file.write(f'Missing Anchor bump for:\n| {active_checks[check]['Name']} | Qty: {active_checks[check]['Qty']}\n')
-            #     continue
+            if not anchor: 
+                if active_checks[check] not in missing_anchor_bumps:
+                    missing_anchor_bumps.append(active_checks[check])
+                    with open(DEST_PATH + M_NAME_H + '_Missing_Bumps.txt', 'a') as badchecks_file:
+                        badchecks_file.write(f'Missing Anchor bump for:\n| {active_checks[check]['Name']} | Qty: {active_checks[check]['Qty']}\n')
+                continue
             check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
             if int(window_start) < int(check) <= int(window_end): # FoH Entries
                 entered[intvl].append([check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Qty']])
@@ -355,7 +356,7 @@ def tabulate(active_checks):
     create_sheets(station_sums[0], item_qtys, pu_window, pu_actual, station_sums[1], station_sums[2], station_sums[3], station_sums[4])
 
 def find_production():
-    qsr_data = qsr.get_QSR_data() #'20250602162500'
+    qsr_data = qsr.get_QSR_data(DATE) #'20250602162500'
     active_checks = {}
     # Collect data #
     start_time = int(f'{START_HOUR}00') # Not using %I to make it easier to handle AM to PM hour change
@@ -408,7 +409,7 @@ def find_production():
     return True
 
 if __name__ == '__main__':
-    if time.strftime('%d') == '01': # Dev Change #
+    if time.strftime('%d') == '17': # Dev Change #
         # Create the monthly directory
         try:
             mkdir(DIR_NAME)

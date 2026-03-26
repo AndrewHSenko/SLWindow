@@ -36,7 +36,8 @@ def aggregate(spreadsheet, spreadsheet_id, range_name): # Will need to modify to
     )
     values = result.get('values', [])
     if not values:
-        print('No data found.')
+        with open('pu_errors.txt', 'a') as puf:
+            puf.write('aggregate_func: ' + time.strftime('%m/%d/%Y: %H:%M:%S') + ': ' + 'No values found in result from spreadsheet. Spreadsheet_id or range might be wrong.' + '\n')
         return None
     try:
         window_data = {}
@@ -50,7 +51,7 @@ def aggregate(spreadsheet, spreadsheet_id, range_name): # Will need to modify to
         return window_data
     except Exception as e:
         with open('pu_errors.txt', 'a') as puf:
-            puf.write(str(time.time()) + ':' + str(e) + '\n')
+            puf.write('Aggregate_func: ' + time.strftime('%m/%d/%Y: %H:%M:%S') + ': ' + str(e) + '\n')
 
 def get_weekly_sheet_id(week, CREDS_PATH, TOKE_PATH):
     creds = None
@@ -64,7 +65,7 @@ def get_weekly_sheet_id(week, CREDS_PATH, TOKE_PATH):
         # First, get the folder ID by querying by mimeType and name
         while True: # Will change to not be a loop
             page_token = None
-            month_folder_req = f'mimeType = "application/vnd.google-apps.folder" and trashed=false and name = \"{time.strftime("%B")} {time.strftime("%Y")[-2:]}\"'
+            month_folder_req = f'mimeType = "application/vnd.google-apps.folder" and trashed=false and name = \"{time.strftime("%B")} {time.strftime("%Y")[-2:]}\"' # 
             month_folder_result = drive.files().list(
                 q = month_folder_req,
                 spaces="drive",
@@ -98,16 +99,60 @@ def get_weekly_sheet_id(week, CREDS_PATH, TOKE_PATH):
                 fields="nextPageToken, files(id, name)",
                 pageToken=page_token
             ).execute()
+            if spreadsheet_id_result == []:
+                with open('pu_errors.txt', 'a') as puf:
+                    puf.write(f'Could not find {time.strftime("%B")} {time.strftime("%Y")[-2:]}. Sheet not found in monthly folder.\n')
             pattern = re.compile(r'[\W_]+')
             all_sheets = [(x['id'], pattern.sub('', x['name'])) for x in spreadsheet_id_result.get('files', [])]
-            weekly_sheet_id = all_sheets[week - 1][0]
-            return weekly_sheet_id
+            weekly_sheet_id = ''
+            for sheet in all_sheets:
+                if fr'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")[-2:]}' in sheet[1] or fr'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")}' in sheet[1]:
+                    weekly_sheet_id = sheet[0]
+            if weekly_sheet_id:
+                return weekly_sheet_id
+            else:
+                with open('pu_errors.txt', 'a') as puf:
+                    puf.write(f'Could not find {time.strftime("%B")} {time.strftime("%Y")[-2:]} in the monthly grid folder.\n')
+            if int(time.strftime('%m')) >= 8: # August or later (first half of fiscal year)
+                pickup_year = f'{time.strftime("%Y")[-2:]}-{int(time.strftime("%Y")[-2:]) + 1}'
+            else: # July or earlier (second half of fiscal year)
+                pickup_year = f'{int(time.strftime("%Y")[-2:]) - 1}-{time.strftime("%Y")[-2:]}'
+            parent_folder_req = f'mimeType = "application/vnd.google-apps.folder" and trashed=false and name = \"{pickup_year} Pick Up Grids\"' # 
+            parent_folder_result = drive.files().list(
+                q = parent_folder_req,
+                spaces="drive",
+                pageSize=3, # Arbitrary
+                fields="nextPageToken, files(id, name)",
+                pageToken=page_token
+            ).execute().get('files', [])
+            parent_folder_id = parent_folder_result[0].get('id')
+            spreadsheet_id_req = f'mimeType = "application/vnd.google-apps.spreadsheet" and trashed=false and "{parent_folder_id}" in parents'
+            spreadsheet_id_result = drive.files().list(
+                q = spreadsheet_id_req,
+                orderBy = "name_natural",
+                spaces="drive",
+                pageSize=7, # Max is 5 weeks for the fiscal month, plus extra cushion
+                fields="nextPageToken, files(id, name)",
+                pageToken=page_token
+            ).execute()
+            if spreadsheet_id_result == []:
+                with open('pu_errors.txt', 'a') as puf:
+                    puf.write(f'Could not find {time.strftime("%B")} {time.strftime("%Y")[-2:]} in the monthly nor the yearly pickup grid folders. Double check the folder name is correct.\n')
+            all_sheets = [(x['id'], pattern.sub('', x['name'])) for x in spreadsheet_id_result.get('files', [])]
+            print(all_sheets)
+            for sheet in all_sheets:
+                if fr'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")[-2:]}' in sheet[1] or fr'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")}' in sheet[1]:
+                    weekly_sheet_id = sheet[0]
+            if weekly_sheet_id == '':
+                raise ValueError('Weekly sheet id not found. Maybe the name was wrong.')
+            else:
+                return weekly_sheet_id
             # page_token = folderIdResult.get("nextPageToken", None)
             # if page_token is None:
             #     break
     except Exception as e:
         with open('pu_errors.txt', 'a') as puf:
-            puf.write(str(time.time()) + ':' + str(e) + '\n')
+            puf.write('weekly_sheet_id_func: ' + time.strftime('%m/%d/%Y: %H:%M:%S') + ': ' + str(e) + '\n')
     
 
 def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual_end):
@@ -170,5 +215,5 @@ def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual
         return (planned, actual)
     except Exception as e:
         with open('pu_errors.txt', 'a') as errtext:
-            errtext.write(str(time.time()) + ':' + str(e) + '\n')
+            errtext.write('main_get_data_func: ' + time.strftime('%m/%d/%Y: %H:%M:%S') + ': ' + str(e) + '\n')
         return False

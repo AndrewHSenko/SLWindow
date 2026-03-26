@@ -10,8 +10,8 @@ backline_ids = {
     # 10121 : 'SOM NOV 25',
     # 10257 : 'SOM DEC 25',
     # 9725 : 'SOM JAN 26',
-    # 10347 : 'SOM FEB 26',
-    10377 : 'SOM MAR',
+    10347 : 'SOM FEB 26',
+    # 10377 : 'SOM MAR 26',
     1146 : 'CUSTOM',
     353 : '#1',
     379 : '#2',
@@ -138,19 +138,17 @@ def get_check_data(start, end):
     # check_data: check_no, check_name, menu_ids (menu_id, qty), total_price
     for check, check_data in checks.items():
         has_start = has_finish = has_PV = False
-        latke = knish = 0 # Every 4 latkes and knishes are rung in as one item
+        latke = 0 # Every 4 latkes are rung in as one item
+        knish = 0 # Every 4 knishes are rung in as one item
         check_qty = 0
-        bl_items = pv_items = [] # Backline and PV items
-        bl_qty = pv_qty = 0
+        bl_items = [] # Backline items
+        bl_qty = 0
+        pv_items = [] # PV items
         pv_qty = 0
-        total_price = 0
-        for menu_id, item_info in check_data['menu_ids'].items():
+        for menu_id, qty in check_data['menu_ids'].items():
             if menu_id in backline_ids:
-                qty = item_info[0]
-                price = item_info[1]
-                for i in range(qty):
+                for _ in range(int(qty)):
                     bl_items.append(backline_ids[menu_id])
-                total_price += price
                 if menu_id == 1638: # Latke
                     latke += qty
                     continue
@@ -159,11 +157,8 @@ def get_check_data(start, end):
                 has_start = True
                 has_finish = True
             elif menu_id in pv_ids:
-                qty = item_info[0]
-                price = item_info[1]
-                for i in range(qty):
+                for _ in range(int(qty)):
                     pv_items.append(pv_ids[menu_id])
-                total_price += price
                 if menu_id == 4444: # Ht'd Knish
                     knish += qty
                     continue
@@ -173,6 +168,15 @@ def get_check_data(start, end):
                 check_qty += qty
                 pv_qty += qty
                 has_PV = True
+            # elif menu_id in no_make_id: # Accounts for tickets rung in as no makes
+            #     with open('nomakes.txt', 'a') as nm:
+            #         nm.write(str(check_data['check_no']) + ' ' + str(check_data['check_name']) + '\n')
+            #     check_qty = 0
+            #     has_start = has_finish = has_pv = False
+            #     latke = knish = 0
+            #     bl_items = pv_items = [] # Same mem loc I think, but irrelevant to this program
+            #     bl_qty = pv_qty = 0
+            #     break
         if latke:
             has_start = True
             has_finish = True
@@ -194,6 +198,6 @@ def get_check_data(start, end):
             continue
         sale_time = check.strftime('%Y%m%d%H%M%S')
         # Check No, Check Name, Check Qty, Has___, BLitems / PVitems #
-        checks_data[sale_time] = [check_data['check_no'], check_data['check_name'], check_qty, total_price, (has_start, has_finish, has_PV), (bl_qty, pv_qty), (bl_items, pv_items)]
+        checks_data[sale_time] = [check_data['check_no'], check_data['check_name'], check_qty, (has_start, has_finish, has_PV), (bl_qty, pv_qty), (bl_items, pv_items)]
     # checks_data is now filled with the qty for each check (including empty checks)
     return checks_data
