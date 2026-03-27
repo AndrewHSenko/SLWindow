@@ -53,7 +53,14 @@ def aggregate(spreadsheet, spreadsheet_id, range_name): # Will need to modify to
         with open('pu_errors.txt', 'a') as puf:
             puf.write('Aggregate_func: ' + time.strftime('%m/%d/%Y: %H:%M:%S') + ': ' + str(e) + '\n')
 
-def get_weekly_sheet_id(week, CREDS_PATH, TOKE_PATH):
+def check_sheet_name(sheet_name, week):
+    shortened_year_match = f'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")[-2:]}'
+    full_year_match = f'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")}'
+    if re.match(shortened_year_match, sheet_name) or re.match(full_year_match, sheet_name):
+        return True
+    return False
+
+def get_weekly_sheet_id(month, week, CREDS_PATH, TOKE_PATH):
     creds = None
     if os.path.exists(TOKE_PATH):
         creds = Credentials.from_authorized_user_file(TOKE_PATH, SCOPES)
@@ -61,11 +68,10 @@ def get_weekly_sheet_id(week, CREDS_PATH, TOKE_PATH):
         login(creds, CREDS_PATH, TOKE_PATH)
     try:
         drive = build('drive', 'v3', credentials=creds)
-        files = []
         # First, get the folder ID by querying by mimeType and name
         while True: # Will change to not be a loop
             page_token = None
-            month_folder_req = f'mimeType = "application/vnd.google-apps.folder" and trashed=false and name = \"{time.strftime("%B")} {time.strftime("%Y")[-2:]}\"' # 
+            month_folder_req = f'mimeType = "application/vnd.google-apps.folder" and trashed=false and name = \"{month} {time.strftime("%Y")[-2:]}\"' # 
             month_folder_result = drive.files().list(
                 q = month_folder_req,
                 spaces="drive",
@@ -75,7 +81,7 @@ def get_weekly_sheet_id(week, CREDS_PATH, TOKE_PATH):
             ).execute().get('files', [])
             if month_folder_result == []: # No results found
                 with open('pu_errors.txt', 'a') as puf:
-                    puf.write(f'Could not find {time.strftime("%B")} {time.strftime("%Y")[-2:]}. Double check the folder name is correct.\n')
+                    puf.write(f'Could not find {month} {time.strftime("%Y")[-2:]}. Double check the folder name is correct.\n')
                 month_folder_req = f'mimeType = "application/vnd.google-apps.folder" and trashed=false and name contains \"{time.strftime("%b")}\" or name contains \"{time.strftime("%b").upper()}\"' # Backup request
                 month_folder_result = drive.files().list(
                     q = month_folder_req,
@@ -101,18 +107,21 @@ def get_weekly_sheet_id(week, CREDS_PATH, TOKE_PATH):
             ).execute()
             if spreadsheet_id_result == []:
                 with open('pu_errors.txt', 'a') as puf:
-                    puf.write(f'Could not find {time.strftime("%B")} {time.strftime("%Y")[-2:]}. Sheet not found in monthly folder.\n')
+                    puf.write(f'Could not find {month} {time.strftime("%Y")[-2:]}. Sheet not found in monthly folder.\n')
             pattern = re.compile(r'[\W_]+')
             all_sheets = [(x['id'], pattern.sub('', x['name'])) for x in spreadsheet_id_result.get('files', [])]
             weekly_sheet_id = ''
             for sheet in all_sheets:
-                if fr'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")[-2:]}' in sheet[1] or fr'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")}' in sheet[1]:
-                    weekly_sheet_id = sheet[0]
+                sheet_name = sheet[1]
+                if month[:3] in sheet_name:
+                    if check_sheet_name(sheet_name, week):
+                        weekly_sheet_id = sheet[0]
+                        break
             if weekly_sheet_id:
                 return weekly_sheet_id
             else:
                 with open('pu_errors.txt', 'a') as puf:
-                    puf.write(f'Could not find {time.strftime("%B")} {time.strftime("%Y")[-2:]} in the monthly grid folder.\n')
+                    puf.write(f'Could not find {month} {time.strftime("%Y")[-2:]} in the monthly grid folder.\n')
             if int(time.strftime('%m')) >= 8: # August or later (first half of fiscal year)
                 pickup_year = f'{time.strftime("%Y")[-2:]}-{int(time.strftime("%Y")[-2:]) + 1}'
             else: # July or earlier (second half of fiscal year)
@@ -137,13 +146,15 @@ def get_weekly_sheet_id(week, CREDS_PATH, TOKE_PATH):
             ).execute()
             if spreadsheet_id_result == []:
                 with open('pu_errors.txt', 'a') as puf:
-                    puf.write(f'Could not find {time.strftime("%B")} {time.strftime("%Y")[-2:]} in the monthly nor the yearly pickup grid folders. Double check the folder name is correct.\n')
+                    puf.write(f'Could not find {month} {time.strftime("%Y")[-2:]} in the monthly nor the yearly pickup grid folders. Double check the folder name is correct.\n')
             all_sheets = [(x['id'], pattern.sub('', x['name'])) for x in spreadsheet_id_result.get('files', [])]
-            print(all_sheets)
             for sheet in all_sheets:
-                if fr'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")[-2:]}' in sheet[1] or fr'[A-Za-z]+{week}[A-Za-z]+{time.strftime("%Y")}' in sheet[1]:
-                    weekly_sheet_id = sheet[0]
-            if weekly_sheet_id == '':
+                sheet_name = sheet[1]
+                if month[:3] in sheet_name:
+                    if check_sheet_name(sheet_name, week):
+                        weekly_sheet_id = sheet[0]
+                        break
+            if not weekly_sheet_id:
                 raise ValueError('Weekly sheet id not found. Maybe the name was wrong.')
             else:
                 return weekly_sheet_id
@@ -178,7 +189,8 @@ def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual
     try:
         service = build('sheets', 'v4', credentials=creds)
         # test_searching_drive(service)
-        spreadsheet_id = get_weekly_sheet_id(week_num, CREDS_PATH, TOKE_PATH)
+        month = time.strftime('%B')
+        spreadsheet_id = get_weekly_sheet_id(month, week_num, CREDS_PATH, TOKE_PATH)
         spreadsheet = service.spreadsheets()
         sheet_metadata = spreadsheet.get(spreadsheetId=spreadsheet_id).execute()
         sheets = sheet_metadata.get('sheets', '')
@@ -195,7 +207,6 @@ def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual
         # sheet_id = sheet.get('properties', {}).get('sheetId', 0)
         window_range_name = f'{title}!{window_start}:{window_end}'
         actual_range_name = f'{title}!{actual_start}:{actual_end}'
-        print(window_range_name, actual_range_name)
         default = aggregate(spreadsheet, spreadsheet_id, DEFAULT)
         if not default[0].isnumeric():
             default[0] = DEFAULT_VAL # 18

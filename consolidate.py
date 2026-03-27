@@ -14,23 +14,22 @@ import ast
 from copy import deepcopy
 
 # HEADERS #
-MONTH_H = '03_21_2026' # time.strftime('%m_%d_%Y')
-M_NAME_H = 'Mar_21_2026' # time.strftime('%b_%d_%Y')
-NO_DAY = 'Mar_2026' # time.strftime('%b_%Y')
+MONTH_H = time.strftime('%m_%d_%Y')
+M_NAME_H = time.strftime('%b_%d_%Y')
+NO_DAY = time.strftime('%b_%Y')
 WEEK_NUM = 3
 SHEET_NUM = 6 # Starts with 1
-DATE = '20260321'
+DATE = time.strftime('%Y%m%d')
 WINDOW_START = 'M5'
 WINDOW_END = 'M125' # M135
 ACTUAL_START = 'O5'
 ACTUAL_END = 'O125' # O135
 NUM_ROWS = 12 # 13
 START_HOUR = 10 # 9
-# DATE = time.strftime('%Y%m%d')
 
 # DIR_NAME = "G:/Window Data/" + time.strftime('%m_%Y')
 # DIR_NAME = "G:/Window Data/02_2026"
-DIR_NAME = "C:/Users/Squirrel/Desktop/Window Data/03_2026"
+DIR_NAME = f'C:/Users/Squirrel/Desktop/Window Data/{time.strftime('%m_%Y')}'
 DEST_PATH = f'{DIR_NAME}/{MONTH_H}/'
 
 # Finds bad checks (missing a station bump) #
@@ -157,40 +156,40 @@ def create_sheets(sums=None, foh_items=None, pu_window=None, pu_actual=None, ssu
         smoothed = np.interp(desired_intvls, np.linspace(0, 110, 111, endpoint=True), [int(float(x)) for x in sums.values()])
         for i in range(len(smoothed)):
             smoothed_sums[i] = smoothed[i]
-        print('On Sums')
-        make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb, window_name) # To add to monthly workbook
-        make_graph.make_daily_prod(monthly_window_wb_name, sums, window_name)
+        make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb, window_name, NUM_ROWS, START_HOUR) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_window_wb_name, sums, window_name, 'Expo Items/5 mins', MONTH_H, START_HOUR)
+        make_graph.make_daily_prod(monthly_window_wb_name, smoothed_sums, f'{window_name} Smoothed', 'Expo Items/5 mins', MONTH_H, START_HOUR, smooth_it=True)
         make_sheet.generate_daily_sheet(daily_window_wb_name, sums, True, window_name, NUM_ROWS, START_HOUR) # To add to daily workbook
         make_graph.make_daily_prod(daily_window_wb_name, sums, window_name, 'Expo Items/5 mins', MONTH_H, START_HOUR)
         make_graph.make_daily_prod(daily_window_wb_name, smoothed_sums, f'{window_name} Smoothed', 'Expo Items/5 mins', MONTH_H, START_HOUR, smooth_it=True)
     # Start Data #
     if ssums:
-        make_sheet.generate_daily_sheet(monthly_window_wb_name, ssums, monthly_wb, finish_name) # To add to monthly workbook
-        make_graph.make_daily_prod(monthly_window_wb_name, ssums, finish_name)
+        make_sheet.generate_daily_sheet(monthly_window_wb_name, ssums, monthly_wb, start_name, NUM_ROWS, START_HOUR) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_window_wb_name, ssums, start_name, 'Start Items/5 mins', MONTH_H, START_HOUR)
         make_sheet.generate_daily_sheet(daily_station_wb_name, ssums, True, start_name, NUM_ROWS, START_HOUR) # To add to daily workbook
         make_graph.make_daily_prod(daily_station_wb_name, ssums, start_name, 'Start Items/5 mins', MONTH_H, START_HOUR)
     # Finish Data #
     if fsums:
-        make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb, finish_name) # To add to monthly workbook
-        make_graph.make_daily_prod(monthly_window_wb_name, sums, finish_name)
+        make_sheet.generate_daily_sheet(monthly_window_wb_name, fsums, monthly_wb, finish_name, NUM_ROWS, START_HOUR) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_window_wb_name, fsums, finish_name, 'Finish Items/5 mins', MONTH_H, START_HOUR)
         make_sheet.generate_daily_sheet(daily_station_wb_name, fsums, False, finish_name, NUM_ROWS, START_HOUR) # To add to daily workbook
         make_graph.make_daily_prod(daily_station_wb_name, fsums, finish_name, 'Finish Items/5 mins', MONTH_H, START_HOUR)
     # PV Data #
     if pvsums:
-        make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb, pv_name) # To add to monthly workbook
-        make_graph.make_daily_prod(monthly_window_wb_name, sums, pv_name)
+        make_sheet.generate_daily_sheet(monthly_window_wb_name, pvsums, monthly_wb, pv_name, NUM_ROWS, START_HOUR) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_window_wb_name, pvsums, pv_name, 'PV Items/5 mins', MONTH_H, START_HOUR)
         make_sheet.generate_daily_sheet(daily_station_wb_name, pvsums, False, pv_name, NUM_ROWS, START_HOUR) # To add to daily workbook
         make_graph.make_daily_prod(daily_station_wb_name, pvsums, pv_name, 'PV Items/5 mins', MONTH_H, START_HOUR)
     # FPV Data #
     if fpvsums:
-        make_sheet.generate_daily_sheet(monthly_window_wb_name, sums, monthly_wb, pv_name) # To add to monthly workbook
-        make_graph.make_daily_prod(monthly_window_wb_name, sums, pv_name)
+        make_sheet.generate_daily_sheet(monthly_window_wb_name, fpvsums, monthly_wb, fpv_name, NUM_ROWS, START_HOUR) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_window_wb_name, fpvsums, fpv_name, 'Finish & PV Items/5 mins', MONTH_H, START_HOUR)
         make_sheet.generate_daily_sheet(daily_station_wb_name, fpvsums, False, fpv_name, NUM_ROWS, START_HOUR) # To add to daily workbook
         make_graph.make_daily_prod(daily_station_wb_name, fpvsums, fpv_name, 'Finish & PV Items/5 mins', MONTH_H, START_HOUR)
     # FoH Data #
+    # Checks (retired) #
     monthly_foh_wb_name = f'{DIR_NAME}/{NO_DAY}_FoH_Data.xlsx'
     daily_foh_wb_name = f'{DEST_PATH}{MONTH_H}_FoH.xlsx'
-    # Number of Tickets/Checks (retired) #
     # foh_checks_name = MONTH_H + '_Checks'
     foh_items_name = MONTH_H + '_FOH_Items'
     # if foh_checks:
@@ -200,9 +199,8 @@ def create_sheets(sums=None, foh_items=None, pu_window=None, pu_actual=None, ssu
     #     make_graph.make_daily_prod(daily_foh_wb_name, foh_checks, foh_checks_name)
     # Items #
     if foh_items:
-        print('On FoH Items')
-        make_sheet.generate_daily_sheet(monthly_foh_wb_name, foh_items, monthly_wb, foh_items_name) # To add to monthly workbook
-        make_graph.make_daily_prod(monthly_foh_wb_name, foh_items, foh_items_name)
+        make_sheet.generate_daily_sheet(monthly_foh_wb_name, foh_items, monthly_wb, foh_items_name, NUM_ROWS, START_HOUR) # To add to monthly workbook
+        make_graph.make_daily_prod(monthly_foh_wb_name, foh_items, foh_items_name, 'FoH Entries/5 mins', MONTH_H, START_HOUR)
         make_sheet.generate_daily_sheet(daily_foh_wb_name, foh_items, True, foh_items_name, NUM_ROWS, START_HOUR) # To add to daily workbook
         make_graph.make_daily_prod(daily_foh_wb_name, foh_items, foh_items_name, 'FoH Entries/5 mins', MONTH_H, START_HOUR)
     daily_pending_wb_name = f'{DEST_PATH}{MONTH_H}_Pending.xlsx'
