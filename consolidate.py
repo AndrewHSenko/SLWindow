@@ -14,12 +14,12 @@ import ast
 from copy import deepcopy
 
 # HEADERS #
-MONTH_H = time.strftime('%m_%d_%Y')
-M_NAME_H = time.strftime('%b_%d_%Y')
-NO_DAY = time.strftime('%b_%Y')
+MONTH_H = '03_21_2026' # time.strftime('%m_%d_%Y')
+M_NAME_H = 'Mar_21_2026' # time.strftime('%b_%d_%Y')
+NO_DAY = 'Mar_2026' # time.strftime('%b_%Y')
 WEEK_NUM = 3
 SHEET_NUM = 6 # Starts with 1
-DATE = time.strftime('%Y%m%d')
+DATE = '20260321' # time.strftime('%Y%m%d')
 WINDOW_START = 'M5'
 WINDOW_END = 'M125' # M135
 ACTUAL_START = 'O5'
@@ -30,7 +30,7 @@ START_HOUR = 10 # 9
 # DIR_NAME = "G:/Window Data/" + time.strftime('%m_%Y')
 # DIR_NAME = "G:/Window Data/02_2026"
 DIR_NAME = f'C:/Users/Squirrel/Desktop/Window Data/{time.strftime('%m_%Y')}'
-DEST_PATH = f'{DIR_NAME}/{MONTH_H}/'
+DEST_PATH = f'{DIR_NAME}/{MONTH_H}'
 
 # Finds bad checks (missing a station bump) #
 def find_bad_checks(active_checks):
@@ -42,7 +42,7 @@ def find_bad_checks(active_checks):
                 continue
             else:
                 bad_checks[check] = check_data
-    with open(DEST_PATH + M_NAME_H + '_Missing_Bumps.txt', 'a') as badchecks_file:
+    with open(DEST_PATH + '/' + M_NAME_H + '_Missing_Bumps.txt', 'a') as badchecks_file:
         badchecks_file.write('MISSING BUMPS\n')
         badchecks_file.write('-------------\n')
         for saletime in bad_checks:
@@ -65,7 +65,7 @@ def find_bad_checks(active_checks):
 def create_raw_text(window, file_name):
     sums = {}
     total = 0
-    with open(f'{DEST_PATH}Raw_{M_NAME_H}_{file_name}_Data.txt', 'a') as window_file: # For Window
+    with open(f'{DEST_PATH}/Raw_{M_NAME_H}_{file_name}_Data.txt', 'a') as window_file: # For Window
         window_file.write(f'Raw {file_name} Data\n')
         window_file.write('---------')
         for intvl, data in window.items():
@@ -89,7 +89,7 @@ def create_raw_text(window, file_name):
     return (sums, total)
 
 def create_window_text(sums, ssum, file_name):
-    with open(f'{DEST_PATH}{MONTH_H}_{file_name}_Summary.txt', 'a') as summary_file:
+    with open(f'{DEST_PATH}/{MONTH_H}_{file_name}_Summary.txt', 'a') as summary_file:
         summary_file.write(f'Summary\n')
         summary_file.write('-------\n')
         intvl_sum, best, worst = 0, 0, 1000 # If we're making 1000+ sandwiches every 5 minutes, give us a medal
@@ -117,7 +117,7 @@ def create_window_text(sums, ssum, file_name):
         summary_file.write(f'TOTAL: {ssum}\n')
 
 def create_foh_entries_text(entered):
-    with open(DEST_PATH + M_NAME_H + '_FoH_Entries.txt', 'a') as entry_file: # For FoH entries
+    with open(DEST_PATH + '/' +  M_NAME_H + '_FoH_Entries.txt', 'a') as entry_file: # For FoH entries
         qtys = {}
         entry_file.write('FoH Entries\n')
         entry_file.write('-----------')
@@ -138,12 +138,12 @@ def create_foh_entries_text(entered):
     return qtys
 
 def create_sheets(sums=None, foh_items=None, pu_window=None, pu_actual=None, ssums=None, fsums=None, pvsums=None, fpvsums=None):
-    monthly_wb = False
+    monthly_wb = True
     if time.strftime('%d') == '01':
         monthly_wb = True
     monthly_window_wb_name = f'{DIR_NAME}/{NO_DAY}_Window_Data.xlsx'
-    daily_window_wb_name = f'{DEST_PATH}{MONTH_H}_Window.xlsx'
-    daily_station_wb_name = f'{DEST_PATH}{MONTH_H}_Stations.xlsx'
+    daily_window_wb_name = f'{DEST_PATH}/{MONTH_H}_Window.xlsx'
+    daily_station_wb_name = f'{DEST_PATH}/{MONTH_H}_Stations.xlsx'
     window_name = MONTH_H + '_Window_Items'
     start_name = MONTH_H + '_Start_Items'
     finish_name = MONTH_H + '_Finish_Items'
@@ -189,7 +189,7 @@ def create_sheets(sums=None, foh_items=None, pu_window=None, pu_actual=None, ssu
     # FoH Data #
     # Checks (retired) #
     monthly_foh_wb_name = f'{DIR_NAME}/{NO_DAY}_FoH_Data.xlsx'
-    daily_foh_wb_name = f'{DEST_PATH}{MONTH_H}_FoH.xlsx'
+    daily_foh_wb_name = f'{DEST_PATH}/{MONTH_H}_FoH.xlsx'
     # foh_checks_name = MONTH_H + '_Checks'
     foh_items_name = MONTH_H + '_FOH_Items'
     # if foh_checks:
@@ -203,7 +203,7 @@ def create_sheets(sums=None, foh_items=None, pu_window=None, pu_actual=None, ssu
         make_graph.make_daily_prod(monthly_foh_wb_name, foh_items, foh_items_name, 'FoH Entries/5 mins', MONTH_H, START_HOUR)
         make_sheet.generate_daily_sheet(daily_foh_wb_name, foh_items, True, foh_items_name, NUM_ROWS, START_HOUR) # To add to daily workbook
         make_graph.make_daily_prod(daily_foh_wb_name, foh_items, foh_items_name, 'FoH Entries/5 mins', MONTH_H, START_HOUR)
-    daily_pending_wb_name = f'{DEST_PATH}{MONTH_H}_Pending.xlsx'
+    daily_pending_wb_name = f'{DEST_PATH}/{MONTH_H}_Pending.xlsx'
     pending_items_name = f'{MONTH_H}_Pending'
     if sums and foh_items and pu_window and pu_actual:
         ratio = overlay.ratio(sums, foh_items)
@@ -282,7 +282,7 @@ def tabulate(active_checks):
             if not anchor: 
                 if active_checks[check] not in missing_anchor_bumps:
                     missing_anchor_bumps.append(active_checks[check])
-                    with open(DEST_PATH + M_NAME_H + '_Missing_Bumps.txt', 'a') as badchecks_file:
+                    with open(DEST_PATH + '/' + M_NAME_H + '_Missing_Bumps.txt', 'a') as badchecks_file:
                         badchecks_file.write(f'Missing Anchor bump for:\n| {active_checks[check]['Name']} | Qty: {active_checks[check]['Qty']}\n')
                 continue
             check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
@@ -407,7 +407,7 @@ def find_production():
     return True
 
 if __name__ == '__main__':
-    if time.strftime('%d') == '17': # Dev Change #
+    if time.strftime('%d') == '01': # Dev Change #
         # Create the monthly directory
         try:
             mkdir(DIR_NAME)
@@ -422,7 +422,7 @@ if __name__ == '__main__':
                 dir_err_file.write(f'An error occurred creating monthly dictionary: {e}\n')
     # Create the daily directory
     try:
-        daily_DIR_NAME = DEST_PATH[:-1]
+        daily_DIR_NAME = DEST_PATH
         mkdir(daily_DIR_NAME)
     except FileExistsError:
         with open('dir_creation_failed.txt', 'a') as dir_err_file:

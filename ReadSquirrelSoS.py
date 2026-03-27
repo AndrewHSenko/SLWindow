@@ -10,8 +10,8 @@ backline_ids = {
     # 10121 : 'SOM NOV 25',
     # 10257 : 'SOM DEC 25',
     # 9725 : 'SOM JAN 26',
-    10347 : 'SOM FEB 26',
-    # 10377 : 'SOM MAR 26',
+    # 10347 : 'SOM FEB 26',
+    10377 : 'SOM MAR 26',
     1146 : 'CUSTOM',
     353 : '#1',
     379 : '#2',
@@ -67,6 +67,7 @@ backline_ids = {
     968 : 'Kid Tuna MD',
     961 : 'Kid Turk',
     962 : 'Kid Turk MD',
+    940: 'Seder Tots',
     905 : 'Zing Taters'
 }
 pv_ids = {
