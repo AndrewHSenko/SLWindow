@@ -3,6 +3,7 @@ from openpyxl.chart import (LineChart, BarChart, Reference)
 from openpyxl.chart.axis import ChartLines
 import get_pu_window as pu
 from os import mkdir
+import time
 
 def ratio(sl_prods, foh_prods): # assumes sl_prods and foh_prods have the same intervals
     ratios = {}
@@ -117,4 +118,4 @@ def create_overlay(wbook, sl_prods, foh_prods, foh_window, foh_actual, sheet_nam
         WORKBOOK.save(filename=wbook)
     except Exception as e:
         with open('overlay_errors.txt', 'a') as err_file:
-            err_file.write(f'{e}\n')
+            err_file.write(f'{time.strftime('%m/%d/%Y: %H:%M:%S')}: {e}\n')

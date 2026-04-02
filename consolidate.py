@@ -9,27 +9,27 @@ import json
 import numpy as np
 from os import mkdir
 
-from decimal import Decimal
-import ast
-from copy import deepcopy
+# NEED TO FIX linspace interpolation FOR NON-STANDARD START AND END HOURS #
 
 # HEADERS #
-MONTH_H = '03_21_2026' # time.strftime('%m_%d_%Y')
-M_NAME_H = 'Mar_21_2026' # time.strftime('%b_%d_%Y')
+MONTH_H = '03_29_2026' # time.strftime('%m_%d_%Y')
+M_NAME_H = 'Mar_29_2026' # time.strftime('%b_%d_%Y')
 NO_DAY = 'Mar_2026' # time.strftime('%b_%Y')
-WEEK_NUM = 3
-SHEET_NUM = 6 # Starts with 1
-DATE = '20260321' # time.strftime('%Y%m%d')
-WINDOW_START = 'M5'
-WINDOW_END = 'M125' # M135
-ACTUAL_START = 'O5'
-ACTUAL_END = 'O125' # O135
+WEEK_NUM = 4
+SHEET_NUM = 6 # Starts with 0
+DATE = '20260329' # time.strftime('%Y%m%d')
+WINDOW_START = 'O5'
+WINDOW_END = 'O125' # M135
+ACTUAL_START = 'M5'
+ACTUAL_END = 'M125' # O135
 NUM_ROWS = 12 # 13
 START_HOUR = 10 # 9
 
 # DIR_NAME = "G:/Window Data/" + time.strftime('%m_%Y')
 # DIR_NAME = "G:/Window Data/02_2026"
-DIR_NAME = f'C:/Users/Squirrel/Desktop/Window Data/{time.strftime('%m_%Y')}'
+# DIR_NAME = f'C:/Users/Squirrel/Desktop/Window Data/{time.strftime('%m_%Y')}'
+
+DIR_NAME = f'C:/Users/Squirrel/Desktop/Window Data/{time.strftime('03_2026')}'
 DEST_PATH = f'{DIR_NAME}/{MONTH_H}'
 
 # Finds bad checks (missing a station bump) #
@@ -218,35 +218,6 @@ def create_sheets(sums=None, foh_items=None, pu_window=None, pu_actual=None, ssu
         overlay.create_overlay(daily_foh_wb_name, None, foh_items, pu_window, pu_actual, MONTH_H, MONTH_H, '', 'FoH Entries', START_HOUR)
     # Will add return statement with try/catch blocks #
 
-# def download_checks(ac):
-#     rawchecks = deepcopy(ac)
-#     with open(f'{MONTH_H}_Raw_Checks.txt', 'w') as wfile:
-#         for saletime in rawchecks:
-#             curr_check = rawchecks[saletime]
-#             curr_check['Qty'] = str(curr_check['Qty'])
-#             curr_check['has_start'] = str(curr_check['has_start'])
-#             curr_check['has_finish'] = str(curr_check['has_finish'])
-#             curr_check['has_pv'] = str(curr_check['has_pv'])
-#             curr_check['bl_qty'] = str(curr_check['bl_qty'])
-#             curr_check['pv_qty'] = str(curr_check['pv_qty'])
-#             curr_check['BL Items'] = str(curr_check['BL Items'])
-#             curr_check['PV Items'] = str(curr_check['PV Items'])
-#         json.dump(rawchecks, wfile)
-
-# def read_in_checks(wfile):
-#     rawchecks = json.load(wfile)
-#     for saletime in rawchecks:
-#         curr_check = rawchecks[saletime]
-#         curr_check['Qty'] = Decimal(curr_check['Qty'])
-#         curr_check['has_start'] = True if curr_check['has_start'] == 'True' else False
-#         curr_check['has_finish'] = True if curr_check['has_finish'] == 'True' else False
-#         curr_check['has_pv'] = True if curr_check['has_pv'] == 'True' else False
-#         curr_check['bl_qty'] = Decimal(curr_check['bl_qty'])
-#         curr_check['pv_qty'] = Decimal(curr_check['pv_qty'])
-#         curr_check['BL Items'] = ast.literal_eval(curr_check['BL Items'])
-#         curr_check['PV Items'] = ast.literal_eval(curr_check['PV Items'])
-#     return rawchecks
-
 def create_text(window, w_name):
     raw_data = create_raw_text(window, f'{w_name} Window')
     sums = raw_data[0]
@@ -371,12 +342,12 @@ def find_production():
                 if sq_check not in active_checks : # Add check from Squirrel to active_checks
                     active_checks[sq_check] = {
                         'Name': sq_checks[sq_check][1],
-                        'Qty': sq_checks[sq_check][2],
+                        'Qty': int(sq_checks[sq_check][2]),
                         'has_start': sq_checks[sq_check][3][0],
                         'has_finish': sq_checks[sq_check][3][1],
                         'has_pv': sq_checks[sq_check][3][2],
-                        'bl_qty': sq_checks[sq_check][4][0],
-                        'pv_qty': sq_checks[sq_check][4][1],
+                        'bl_qty': int(sq_checks[sq_check][4][0]),
+                        'pv_qty': int(sq_checks[sq_check][4][1]),
                         'HOT START' : '',
                         'HOT FINISH' : '',
                         'PLATESVILLE': '',
@@ -384,30 +355,30 @@ def find_production():
                         'BL Items' : sq_checks[sq_check][5][0],
                         'PV Items' : sq_checks[sq_check][5][1]
                     }
-        # Set up bump times in active_checks #
-        for sale_time in active_checks:
-            check_name = active_checks[sale_time]['Name']
-            st = sale_time
-            if not (sale_time, 'ANCHOR') in qsr_data:
-                st = qsr.find_entry(qsr_data, sale_time, check_name)
-            if (st, 'HOT START') in qsr_data:
-                active_checks[sale_time]['HOT START'] = qsr_data[(st, 'HOT START')]['bumped']
-            if (st, 'HOT FINISH') in qsr_data:
-                active_checks[sale_time]['HOT FINISH'] = qsr_data[(st, 'HOT FINISH')]['bumped']
-            if (st, 'PLATESVILLE') in qsr_data:
-                active_checks[sale_time]['PLATESVILLE'] = qsr_data[(st, 'PLATESVILLE')]['bumped']
-            if (st, 'ANCHOR') in qsr_data:
-                active_checks[sale_time]['ANCHOR'] = qsr_data[(st, 'ANCHOR')]['bumped']
+        
         start_time += 5
         if str(start_time)[-2:] == '60':
             start_time += 40
-    # download_checks(active_checks)
+    # Set up bump times in active_checks #
+    for sale_time in active_checks:
+        check_name = active_checks[sale_time]['Name']
+        st = sale_time
+        if not (sale_time, 'ANCHOR') in qsr_data:
+            st = qsr.find_entry(qsr_data, sale_time, check_name)
+        if (st, 'HOT START') in qsr_data:
+            active_checks[sale_time]['HOT START'] = qsr_data[(st, 'HOT START')]['bumped']
+        if (st, 'HOT FINISH') in qsr_data:
+            active_checks[sale_time]['HOT FINISH'] = qsr_data[(st, 'HOT FINISH')]['bumped']
+        if (st, 'PLATESVILLE') in qsr_data:
+            active_checks[sale_time]['PLATESVILLE'] = qsr_data[(st, 'PLATESVILLE')]['bumped']
+        if (st, 'ANCHOR') in qsr_data:
+            active_checks[sale_time]['ANCHOR'] = qsr_data[(st, 'ANCHOR')]['bumped']
     find_bad_checks(active_checks)
     tabulate(active_checks)
     return True
 
 if __name__ == '__main__':
-    if time.strftime('%d') == '01': # Dev Change #
+    if time.strftime('%d') == '01':
         # Create the monthly directory
         try:
             mkdir(DIR_NAME)

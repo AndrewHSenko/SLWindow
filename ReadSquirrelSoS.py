@@ -97,6 +97,7 @@ pv_ids = {
 }
 
 def get_check(cursor, start, end):
+    # ci.DeptNo to divide between Deli (9) and ND (25) #
     query = '''
     SELECT ch.CheckNo, ct.Name, ci.SaleTime, ci.MenuID, ci.Quantity
     FROM ((Squirrel.dbo.X_CheckHeader AS ch
@@ -136,6 +137,8 @@ def get_check_data(start, end):
     # Now checks is filled with every check entered between start and end #
     no_make_id = [595, 8291]
     checks_data = {}
+    latke_qty = 0
+    knish_qty = 0
     # check_data: check_no, check_name, menu_ids (menu_id, qty), total_price
     for check, check_data in checks.items():
         has_start = has_finish = has_PV = False
@@ -181,6 +184,9 @@ def get_check_data(start, end):
         if latke:
             has_start = True
             has_finish = True
+            # with open('03_29_latkes.txt', 'a') as l:
+            #     l.write(f'{check_data['check_no']}/{check_data['check_name']}: {latke}\n')
+            latke_qty += latke
             while latke > 4:
                 latke -= 4
                 check_qty += 1
@@ -188,6 +194,9 @@ def get_check_data(start, end):
             check_qty += 1
             bl_qty += 1
         if knish:
+            # with open('03_29_knishes.txt', 'a') as l:
+            #     l.write(f'{check_data['check_no']}/{check_data['check_name']}: {knish}\n')
+            knish_qty += knish
             has_PV = True
             while knish > 4:
                 knish -= 4
