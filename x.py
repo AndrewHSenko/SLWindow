@@ -1,7 +1,30 @@
 import json
 
-with open('latkes.txt', 'r') as l:
-    l.readlines()
+with open('03_29_latkes.txt', 'r') as l:
+    total = 0
+    window = 0
+    for line in l.readlines():
+        qty = float(line.split()[-1])
+        total += qty
+        while qty > 4:
+            window += 1
+            qty -= 4
+        window += 1
+    print(f'Total: {total}')
+    print(f'Window: {window}')
+with open('03_29_knishes.txt', 'r') as l:
+    total = 0
+    window = 0
+    for line in l.readlines():
+        qty = float(line.split()[-1])
+        total += qty
+        while qty > 3:
+            window += 1
+            qty -= 3
+        window += 1
+    print(f'Total: {total}')
+    print(f'Window: {window}')
+
 
 # with open('data.json') as json_file:
 #     data = json.load(json_file)

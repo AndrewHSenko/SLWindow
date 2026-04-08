@@ -254,7 +254,7 @@ def tabulate(active_checks):
                 if active_checks[check] not in missing_anchor_bumps:
                     missing_anchor_bumps.append(active_checks[check])
                     with open(DEST_PATH + '/' + M_NAME_H + '_Missing_Bumps.txt', 'a') as badchecks_file:
-                        badchecks_file.write(f'Missing Anchor bump for:\n| {active_checks[check]['Name']} | Qty: {active_checks[check]['Qty']}\n')
+                        badchecks_file.write(f'Missing Anchor bump for:\n| {active_checks[check]['Name']} | Qty: {active_checks[check]['Qty']} | Squirrel Qty: {active_checks[check]['Total Qty']}\n')
                 continue
             check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
             if int(window_start) < int(check) <= int(window_end): # FoH Entries
@@ -343,17 +343,18 @@ def find_production():
                     active_checks[sq_check] = {
                         'Name': sq_checks[sq_check][1],
                         'Qty': int(sq_checks[sq_check][2]),
-                        'has_start': sq_checks[sq_check][3][0],
-                        'has_finish': sq_checks[sq_check][3][1],
-                        'has_pv': sq_checks[sq_check][3][2],
-                        'bl_qty': int(sq_checks[sq_check][4][0]),
-                        'pv_qty': int(sq_checks[sq_check][4][1]),
+                        'Total Qty': int(sq_checks[sq_check][3]),
+                        'has_start': sq_checks[sq_check][4][0],
+                        'has_finish': sq_checks[sq_check][4][1],
+                        'has_pv': sq_checks[sq_check][4][2],
+                        'bl_qty': int(sq_checks[sq_check][5][0]),
+                        'pv_qty': int(sq_checks[sq_check][5][1]),
                         'HOT START' : '',
                         'HOT FINISH' : '',
                         'PLATESVILLE': '',
                         'ANCHOR' : '',
-                        'BL Items' : sq_checks[sq_check][5][0],
-                        'PV Items' : sq_checks[sq_check][5][1]
+                        'BL Items' : sq_checks[sq_check][6][0],
+                        'PV Items' : sq_checks[sq_check][6][1],
                     }
         
         start_time += 5
