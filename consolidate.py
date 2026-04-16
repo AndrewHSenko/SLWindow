@@ -65,18 +65,20 @@ def find_bad_checks(active_checks):
 def create_raw_text(window, file_name):
     sums = {}
     total = 0
+    sq_total = 0
     with open(f'{DEST_PATH}/Raw_{M_NAME_H}_{file_name}_Data.txt', 'a') as window_file: # For Window
         window_file.write(f'Raw {file_name} Data\n')
         window_file.write('---------')
         for intvl, data in window.items():
             window_file.write(f'\n||| {intvl} |||\n')
-            for d in data[:-1]:
+            for d in data[:-2]:
                 saletime = d[0]
                 name = d[1]
                 bl_items = ['None'] if not d[2] else d[2]
                 pv_items = ['None'] if not d[3] else d[3]
                 qty = int(d[-1])
-                window_file.write(f'+ {saletime} ({name}): {qty}\n')
+                sq_qty = int(d[-2])
+                window_file.write(f'+ {saletime} ({name}): {qty} (Squirrel: {sq_qty})\n')
                 window_file.write(f'   Backline Items:\n')
                 for item in bl_items:
                     window_file.write(f'   - {item}\n')
@@ -85,10 +87,11 @@ def create_raw_text(window, file_name):
                     window_file.write(f'   - {item}\n')
             window_file.write(f'[ Total: {int(data[-1])} ]\n')
             total += int(data[-1])
-            sums[intvl] = str(data[-1])
-    return (sums, total)
+            sq_total += int(data[-2])
+            sums[intvl] = (str(data[-1]), str(data[-2])) # Window, Squirrel
+    return (sums, total, sq_total)
 
-def create_window_text(sums, ssum, file_name):
+def create_window_text(sums, ssum, sq_total, file_name):
     with open(f'{DEST_PATH}/{MONTH_H}_{file_name}_Summary.txt', 'a') as summary_file:
         summary_file.write(f'Summary\n')
         summary_file.write('-------\n')
@@ -102,19 +105,22 @@ def create_window_text(sums, ssum, file_name):
                     if head == 12:
                         head -= 12
                     summary_file.write(f'| {intvl[:2]}:00 - {head + 1}:00 |\n')
-            int_sum = int(float(sum)) 
-            summary_file.write(f'{intvl}: {int_sum}\n')
+            int_sum = int(float(sum[0]))
+            int_sq_sum = int(float(sum[1]))
+            summary_file.write(f'{intvl}: {int_sum} (Squirrel: {int_sq_sum})\n')
             intvl_sum += int_sum
             if int_sum > best:
                 best = int_sum
             if int_sum < worst:
                 worst = int_sum
             if intvl[-2:] == '00':
+                summary_file.write(f'Window Stats:\n')
                 summary_file.write(f'* Total: {intvl_sum} *\n')
                 summary_file.write(f'* Best: {best} *\n')
                 summary_file.write(f'* Worst: {worst} *\n\n')
                 intvl_sum, best, worst = 0, 0, 1000
         summary_file.write(f'TOTAL: {ssum}\n')
+        summary_file.write(f'SQUIRREL TOTAL: {sq_total}\n')
 
 def create_foh_entries_text(entered):
     with open(DEST_PATH + '/' +  M_NAME_H + '_FoH_Entries.txt', 'a') as entry_file: # For FoH entries
@@ -124,17 +130,19 @@ def create_foh_entries_text(entered):
         for ivl, entry in entered.items():
             check_sum = 0
             item_sum = 0
+            item_sq_sum = 0
             entry_file.write(f'\n||| {ivl} |||\n')
             for vals in entry:
                 check_sum += 1
                 item_sum += int(vals[-1])
+                item_sq_sum += int(vals[-2])
                 entry_file.write(f'+ {vals[1]}: {vals[0]}\n')
-            entry_file.write(f'Checks: {check_sum}\nItem Qty: {item_sum}\n')
-            qtys[ivl] = (check_sum, item_sum)
+            entry_file.write(f'Checks: {check_sum}\nItem Qty: {item_sum} (Squirrel: {item_sq_sum}\n')
+            qtys[ivl] = (check_sum, item_sum, item_sq_sum)
         entry_file.write(f'\nSUMMARY\n')
         entry_file.write('-------\n')
         for ivl, entry_qty in qtys.items():
-            entry_file.write(f'|{ivl}| TOTAL CHECKS: {entry_qty[0]} / TOTAL QTY: {entry_qty[1]}\n')
+            entry_file.write(f'|{ivl}| TOTAL CHECKS: {entry_qty[0]} / TOTAL QTY: {entry_qty[1]} / TOTAL SQUIRREL QTY: {entry_qty[2]}\n')
     return qtys
 
 def create_sheets(sums=None, foh_items=None, pu_window=None, pu_actual=None, ssums=None, fsums=None, pvsums=None, fpvsums=None):
@@ -222,7 +230,8 @@ def create_text(window, w_name):
     raw_data = create_raw_text(window, f'{w_name} Window')
     sums = raw_data[0]
     stotal = raw_data[1]
-    create_window_text(sums, stotal, f'{w_name} Window')
+    sq_total = raw_data[2]
+    create_window_text(sums, stotal, sq_total, f'{w_name} Window')
     return sums
 
 # To update window
@@ -258,53 +267,68 @@ def tabulate(active_checks):
                 continue
             check_saletime = f'{check[-6:-4]}:{check[-4:-2]}:{check[-2:]}'
             if int(window_start) < int(check) <= int(window_end): # FoH Entries
-                entered[intvl].append([check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Qty']])
+                entered[intvl].append([check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Total Qty'], active_checks[check]['Qty']])
             if int(window_start) < int(anchor) <= int(window_end): # Anchor Bumps
-                window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Qty']))
+                window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Total Qty'], active_checks[check]['Qty']))
             if active_checks[check]['has_start'] and active_checks[check]['HOT START']:
                 start = active_checks[check]['HOT START']
                 if int(window_start) < int(start) <= int(window_end): # Start Bumps
-                    s_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['bl_qty']))
+                    s_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['bl_sq_qty'], active_checks[check]['bl_qty']))
             if active_checks[check]['has_finish'] and active_checks[check]['HOT FINISH']:
                 finish = active_checks[check]['HOT FINISH']
                 if int(window_start) < int(finish) <= int(window_end):
-                    f_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['bl_qty']))
+                    f_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['bl_sq_qty'], active_checks[check]['bl_qty']))
                     if active_checks[check]['has_pv']: # So Finish & PV
                         pv = active_checks[check]['PLATESVILLE']
                         if finish > pv: # Bumped at Finish last
-                            fpv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Qty']))  
+                            fpv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Total Qty'], active_checks[check]['Qty']))  
                     else: # Just Finish bumps
-                        fpv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Qty']))
+                        fpv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Total Qty'], active_checks[check]['Qty']))
             if active_checks[check]['has_pv'] and active_checks[check]['PLATESVILLE']:
                 pv = active_checks[check]['PLATESVILLE']
                 if int(window_start) < int(pv) <= int(window_end): # PV Bumps
-                    pv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['pv_qty']))
+                    pv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['pv_sq_qty'], active_checks[check]['pv_qty']))
                     if active_checks[check]['has_finish']: # So Finish & PV
                         finish = active_checks[check]['HOT FINISH']
                         if pv > finish: # Bumped at PV last
-                            fpv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Qty']))
+                            fpv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Total Qty'], active_checks[check]['Qty']))
                     else: # Just PV bumps
-                        fpv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Qty']))
+                        fpv_window[intvl].append((check_saletime, active_checks[check]['Name'], active_checks[check]['BL Items'], active_checks[check]['PV Items'], active_checks[check]['Total Qty'], active_checks[check]['Qty']))
         sum = 0
+        sq_sum = 0
         for entry in window[intvl]:
             sum += entry[-1]
+            sq_sum += entry[-2]
         window[intvl].append(sum)
+        window[intvl].append(sq_sum)
         sum = 0
+        sq_sum = 0
         for entry in s_window[intvl]:
             sum += entry[-1]
+            sq_sum += entry[-2]
         s_window[intvl].append(sum)
+        s_window[intvl].append(sq_sum)
         sum = 0
+        sq_sum = 0
         for entry in f_window[intvl]:
             sum += entry[-1]
+            sq_sum += entry[-2]
         f_window[intvl].append(sum)
+        f_window[intvl].append(sq_sum)
         sum = 0
+        sq_sum = 0
         for entry in pv_window[intvl]:
             sum += entry[-1]
+            sq_sum += entry[-2]
         pv_window[intvl].append(sum)
+        pv_window[intvl].append(sq_sum)
         sum = 0
+        sq_sum = 0
         for entry in fpv_window[intvl]:
             sum += entry[-1]
+            sq_sum += entry[-2]
         fpv_window[intvl].append(sum)
+        fpv_window[intvl].append(sq_sum)
         start_time += 5
         if str(start_time)[-2:] == '60':
             start_time += 40
@@ -316,10 +340,10 @@ def tabulate(active_checks):
     station_sums.append(create_text(pv_window, 'PV'))
     station_sums.append(create_text(fpv_window, 'FPV'))
     qtys = create_foh_entries_text(entered)
-    check_qtys = {}
+    # check_qtys = {}
     item_qtys = {}
     for ivl, qty in qtys.items():
-        check_qtys[ivl] = qty[0]
+        # check_qtys[ivl] = qty[0]
         item_qtys[ivl] = qty[1]
     pu_window, pu_actual = pu.get_data(WEEK_NUM, SHEET_NUM, WINDOW_START, WINDOW_END, ACTUAL_START, ACTUAL_END)
     create_sheets(station_sums[0], item_qtys, pu_window, pu_actual, station_sums[1], station_sums[2], station_sums[3], station_sums[4])
@@ -344,19 +368,20 @@ def find_production():
                         'Name': sq_checks[sq_check][1],
                         'Qty': int(sq_checks[sq_check][2]),
                         'Total Qty': int(sq_checks[sq_check][3]),
-                        'has_start': sq_checks[sq_check][4][0],
-                        'has_finish': sq_checks[sq_check][4][1],
-                        'has_pv': sq_checks[sq_check][4][2],
-                        'bl_qty': int(sq_checks[sq_check][5][0]),
-                        'pv_qty': int(sq_checks[sq_check][5][1]),
+                        'bl_sq_qty': int(sq_checks[sq_check][4][0]),
+                        'pv_sq_qty': int(sq_checks[sq_check][4][1]),
+                        'has_start': sq_checks[sq_check][5][0],
+                        'has_finish': sq_checks[sq_check][5][1],
+                        'has_pv': sq_checks[sq_check][5][2],
+                        'bl_qty': int(sq_checks[sq_check][6][0]),
+                        'pv_qty': int(sq_checks[sq_check][6][1]),
                         'HOT START' : '',
                         'HOT FINISH' : '',
                         'PLATESVILLE': '',
                         'ANCHOR' : '',
-                        'BL Items' : sq_checks[sq_check][6][0],
-                        'PV Items' : sq_checks[sq_check][6][1],
+                        'BL Items' : sq_checks[sq_check][7][0],
+                        'PV Items' : sq_checks[sq_check][7][1],
                     }
-        
         start_time += 5
         if str(start_time)[-2:] == '60':
             start_time += 40
