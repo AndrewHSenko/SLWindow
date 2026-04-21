@@ -5,19 +5,19 @@ import get_pu_window as pu
 import make_sheet
 import make_graph
 import time
-import json
+import pickle
 import numpy as np
 from os import mkdir
 
 # NEED TO FIX linspace interpolation FOR NON-STANDARD START AND END HOURS #
 
 # HEADERS #
-MONTH_H = '03_29_2026' # time.strftime('%m_%d_%Y')
-M_NAME_H = 'Mar_29_2026' # time.strftime('%b_%d_%Y')
+MONTH_H = '03_28_2026' # time.strftime('%m_%d_%Y')
+M_NAME_H = 'Mar_28_2026' # time.strftime('%b_%d_%Y')
 NO_DAY = 'Mar_2026' # time.strftime('%b_%Y')
 WEEK_NUM = 4
-SHEET_NUM = 6 # Starts with 0
-DATE = '20260329' # time.strftime('%Y%m%d')
+SHEET_NUM = 5 # Starts with 0
+DATE = '20260328' # time.strftime('%Y%m%d')
 WINDOW_START = 'O5'
 WINDOW_END = 'O125' # M135
 ACTUAL_START = 'M5'
@@ -374,6 +374,9 @@ def find_production():
             active_checks[sale_time]['PLATESVILLE'] = qsr_data[(st, 'PLATESVILLE')]['bumped']
         if (st, 'ANCHOR') in qsr_data:
             active_checks[sale_time]['ANCHOR'] = qsr_data[(st, 'ANCHOR')]['bumped']
+    with open('saved_dictionary.pkl', 'wb') as f:
+        pickle.dump(active_checks, f)
+    return
     find_bad_checks(active_checks)
     tabulate(active_checks)
     return True
