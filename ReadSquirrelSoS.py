@@ -143,10 +143,13 @@ def get_check_data(start, end):
         latke = knish = 0 # Every 4 latkes and 3 knishes are rung in as one item
         latke_qty = knish_qty = 0 # Latkes/knishes by total volume, not window volume
         check_qty = 0
+        total_qty = 0
         bl_items = [] # Backline items
         bl_qty = 0
+        bl_sq_qty = 0
         pv_items = [] # PV items
         pv_qty = 0
+        pv_sq_qty = 0
         for menu_id, qty in check_data['menu_ids'].items():
             if menu_id in backline_ids:
                 for _ in range(int(qty)):
@@ -155,7 +158,9 @@ def get_check_data(start, end):
                     latke += qty
                     continue
                 check_qty += qty
+                total_qty += qty
                 bl_qty += qty
+                bl_sq_qty += qty
                 has_start = True
                 has_finish = True
             elif menu_id in pv_ids:
@@ -168,7 +173,9 @@ def get_check_data(start, end):
                     knish += qty * 3
                     continue
                 check_qty += qty
+                total_qty += qty
                 pv_qty += qty
+                pv_sl_qty += qty
                 has_PV = True
             # elif menu_id in no_make_id: # Accounts for tickets rung in as no makes
             #     with open('nomakes.txt', 'a') as nm:
@@ -190,7 +197,9 @@ def get_check_data(start, end):
                 check_qty += 1
                 bl_qty += 1
             check_qty += 1
+            total_qty += latke
             bl_qty += 1
+            bl_sq_qty += latke
         if knish:
             # with open('03_29_knishes.txt', 'a') as l:
             #     l.write(f'{check_data['check_no']}/{check_data['check_name']}: {knish}\n')
@@ -201,12 +210,13 @@ def get_check_data(start, end):
                 check_qty += 1
                 pv_qty += 1
             check_qty += 1
+            total_qty += knish
             pv_qty += 1
+            pv_sq_qty += knish
         if check_qty == 0: # Skip checks that don't have SL items
             continue
         sale_time = check.strftime('%Y%m%d%H%M%S')
-        total_qty = check_qty + latke_qty + knish_qty
         # Check No, Check Name, Check Qty, Has___, BLitems / PVitems #
-        checks_data[sale_time] = [check_data['check_no'], check_data['check_name'], check_qty, total_qty, (has_start, has_finish, has_PV), (bl_qty, pv_qty), (bl_items, pv_items)]
+        checks_data[sale_time] = [check_data['check_no'], check_data['check_name'], check_qty, total_qty, (bl_sq_qty, pv_sq_qty), (has_start, has_finish, has_PV), (bl_qty, pv_qty), (bl_items, pv_items)]
     # checks_data is now filled with the qty for each check (including empty checks)
     return checks_data
