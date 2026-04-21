@@ -344,7 +344,7 @@ def tabulate(active_checks):
     item_qtys = {}
     for ivl, qty in qtys.items():
         # check_qtys[ivl] = qty[0]
-        item_qtys[ivl] = qty[1]
+        item_qtys[ivl] = (qty[1], qty[2])
     pu_window, pu_actual = pu.get_data(WEEK_NUM, SHEET_NUM, WINDOW_START, WINDOW_END, ACTUAL_START, ACTUAL_END)
     create_sheets(station_sums[0], item_qtys, pu_window, pu_actual, station_sums[1], station_sums[2], station_sums[3], station_sums[4])
 
