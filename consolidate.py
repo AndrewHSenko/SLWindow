@@ -12,12 +12,12 @@ from os import mkdir
 # NEED TO FIX linspace interpolation FOR NON-STANDARD START AND END HOURS #
 
 # HEADERS #
-MONTH_H = '03_29_2026' # time.strftime('%m_%d_%Y')
-M_NAME_H = 'Mar_29_2026' # time.strftime('%b_%d_%Y')
-NO_DAY = 'Mar_2026' # time.strftime('%b_%Y')
-WEEK_NUM = 4
+MONTH_H = '05_03_2026' # time.strftime('%m_%d_%Y')
+M_NAME_H = 'May_03_2026' # time.strftime('%b_%d_%Y')
+NO_DAY = 'May_2026' # time.strftime('%b_%Y')
+WEEK_NUM = 5
 SHEET_NUM = 6 # Starts with 0
-DATE = '20260329' # time.strftime('%Y%m%d')
+DATE = '20260503' # time.strftime('%Y%m%d')
 WINDOW_START = 'O5'
 WINDOW_END = 'O125' # M135
 ACTUAL_START = 'M5'
@@ -29,7 +29,7 @@ START_HOUR = 10 # 9
 # DIR_NAME = "G:/Window Data/02_2026"
 # DIR_NAME = f'C:/Users/Squirrel/Desktop/Window Data/{time.strftime('%m_%Y')}'
 
-DIR_NAME = f'C:/Users/Squirrel/Desktop/Window Data/{time.strftime('03_2026')}'
+DIR_NAME = f'C:/Users/Squirrel/Desktop/Window Data/{time.strftime('05_2026')}'
 DEST_PATH = f'{DIR_NAME}/{MONTH_H}'
 
 # Finds bad checks (missing a station bump) #

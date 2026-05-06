@@ -189,7 +189,7 @@ def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual
     try:
         service = build('sheets', 'v4', credentials=creds)
         # test_searching_drive(service)
-        month = time.strftime('%B')
+        month = 'April' # time.strftime('%B')
         spreadsheet_id = get_weekly_sheet_id(month, week_num, CREDS_PATH, TOKE_PATH)
         spreadsheet = service.spreadsheets()
         sheet_metadata = spreadsheet.get(spreadsheetId=spreadsheet_id).execute()
@@ -218,9 +218,9 @@ def get_data(week_num, sheet_num, window_start, window_end, actual_start, actual
                 planned[i] = default[0] # Should be the default window setting found in cell M1
         i = 0
         for i in range(total): # Assumes size of planned and actual match, which they do by design
-            if not planned[i].isnumeric():
+            if planned[i] == None or planned[i] == '':
                 planned[i] = DEFAULT_VAL
-            if not actual[i].isnumeric():
+            if actual[i] == None or actual[i] == '':
                 actual[i] = DEFAULT_VAL
             actual[i] = int(planned[i]) - int(actual[i])
         return (planned, actual)
