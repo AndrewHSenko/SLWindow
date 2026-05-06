@@ -124,10 +124,9 @@ def get_check_data(start, end):
             return
         for check in rows:
             sale_time = check[2]
-            # if not check[1]: # No name
-            #     print(check[0])
-            #     continue
-            if sale_time not in checks: 
+            if sale_time not in checks:
+                if not check[1]:
+                    check[1] = 'NO_NAME_FOUND'
                 checks[sale_time] = {'check_no' : check[0], 'check_name' : check[1].strip(), 'menu_ids' : {check[3] : int(check[4])}}
             else:
                 if check[3] in checks[sale_time]['menu_ids']:
@@ -175,7 +174,7 @@ def get_check_data(start, end):
                 check_qty += qty
                 total_qty += qty
                 pv_qty += qty
-                pv_sl_qty += qty
+                pv_sq_qty += qty
                 has_PV = True
             # elif menu_id in no_make_id: # Accounts for tickets rung in as no makes
             #     with open('nomakes.txt', 'a') as nm:
